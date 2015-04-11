@@ -1,0 +1,256 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{4574D829-9CCB-410B-A361-258378DE71C0}</ProjectGuid>
+    <RootNamespace>Labb01</RootNamespace>
+    <ProjectName>Shader Labb Base</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v120</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)bin\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">bin\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)\data\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">data\</IntDir>
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <TargetName Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectName)$(Configuration)</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>..\CommonUtilities;..\Feeling Software\FCollada;..\tinyxml;..\DL_Debug;..\FI_File;..\External\DirectX10\Include;..\DirectInput;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <WarningLevel>Level4</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>d3d10.lib;d3dx10.lib;DxErr.lib;dinput8.lib;dxguid.lib;FCollada.lib;FColladaD.lib;FColladaU.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(ProjectName)$(Configuration).exe</OutputFile>
+      <AdditionalLibraryDirectories>../DirectInput;../Feeling Software/FCollada/Output;../tinyxml;../External/DirectX10/Lib/x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>..\CommonUtilities;..\Feeling Software\FCollada;..\tinyxml;..\DL_Debug;..\FI_File;..\DirectInput;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <WarningLevel>Level4</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>d3d10.lib;d3dx10.lib;DxErr.lib;dinput8.lib;dxguid.lib;FCollada.lib;FColladaD.lib;FColladaU.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(ProjectName)$(Configuration).exe</OutputFile>
+      <AdditionalLibraryDirectories>../DirectInput;../Feeling Software/FCollada/Output;../tinyxml;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="SetupInfo.cpp" />
+    <ClCompile Include="SystemTimer.cpp" />
+    <ClCompile Include="Time.cpp" />
+    <ClCompile Include="Input.cpp" />
+    <ClCompile Include="InputCore.cpp" />
+    <ClCompile Include="Light.cpp" />
+    <ClCompile Include="Frustum.cpp" />
+    <ClCompile Include="OOBB.cpp" />
+    <ClCompile Include="Structures.cpp" />
+    <ClCompile Include="OctTree.cpp" />
+    <ClCompile Include="TreeDweller.cpp" />
+    <ClCompile Include="TreeNode.cpp" />
+    <ClCompile Include="Effect.cpp" />
+    <ClCompile Include="EffectContainer.cpp" />
+    <ClCompile Include="EffectInput.cpp" />
+    <ClCompile Include="Model.cpp" />
+    <ClCompile Include="ModelContainer.cpp" />
+    <ClCompile Include="RenderProcessTarget.cpp" />
+    <ClCompile Include="Surface.cpp" />
+    <ClCompile Include="ColladaMeshFactory.cpp" />
+    <ClCompile Include="DXSDKMeshFactory.cpp" />
+    <ClCompile Include="TransformationNode_KeyFrames.cpp" />
+    <ClCompile Include="TransformationNode.cpp" />
+    <ClCompile Include="TransformationNode_Curves.cpp" />
+    <ClCompile Include="TransformationNode_Hierarchy.cpp" />
+    <ClCompile Include="AnimationCurve.cpp" />
+    <ClCompile Include="Bone.cpp" />
+    <ClCompile Include="BoneHierarchy.cpp" />
+    <ClCompile Include="BoneInstance.cpp" />
+    <ClCompile Include="BoneInstanceHierarchy.cpp" />
+    <ClCompile Include="CPUParticle.cpp" />
+    <ClCompile Include="CPUParticleData.cpp" />
+    <ClCompile Include="CPUParticleEmittorData.cpp" />
+    <ClCompile Include="CPUParticleEmittorInstance.cpp" />
+    <ClCompile Include="Instance.cpp" />
+    <ClCompile Include="TransformationNodeInstance.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="TextureContainer.cpp" />
+    <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="Engine.cpp" />
+    <ClCompile Include="FullscreenHelper.cpp" />
+    <ClCompile Include="RenderTarget.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="Scene.cpp" />
+    <ClCompile Include="Streak.cpp" />
+    <ClCompile Include="StreakParticle.cpp" />
+    <ClCompile Include="Application.cpp" />
+    <ClCompile Include="ComputedInstance.cpp" />
+    <ClCompile Include="ComputedModel.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BufferWrapper.h" />
+    <ClInclude Include="Resource.h" />
+    <ClInclude Include="resource1.h" />
+    <ClInclude Include="SetupInfo.h" />
+    <ClInclude Include="CU_GrowingArray.h" />
+    <ClInclude Include="LoopMacros.h" />
+    <ClInclude Include="Macros.h" />
+    <ClInclude Include="StaticArray.h" />
+    <ClInclude Include="SystemTimer.h" />
+    <ClInclude Include="Time.h" />
+    <ClInclude Include="Matrix.h" />
+    <ClInclude Include="Matrix33.h" />
+    <ClInclude Include="Matrix44.h" />
+    <ClInclude Include="Vector.h" />
+    <ClInclude Include="Vector2.h" />
+    <ClInclude Include="Vector3.h" />
+    <ClInclude Include="Vector4.h" />
+    <ClInclude Include="Input.h" />
+    <ClInclude Include="InputCore.h" />
+    <ClInclude Include="Keys.h" />
+    <ClInclude Include="MouseButtons.h" />
+    <ClInclude Include="Light.h" />
+    <ClInclude Include="Frustum.h" />
+    <ClInclude Include="OOBB.h" />
+    <ClInclude Include="Structures.h" />
+    <ClInclude Include="OctTree.h" />
+    <ClInclude Include="TreeDweller.h" />
+    <ClInclude Include="TreeNode.h" />
+    <ClInclude Include="Effect.h" />
+    <ClInclude Include="EffectContainer.h" />
+    <ClInclude Include="EffectInput.h" />
+    <ClInclude Include="EffectTechnique.h" />
+    <ClInclude Include="Model.h" />
+    <ClInclude Include="ModelContainer.h" />
+    <ClInclude Include="RenderProcessTarget.h" />
+    <ClInclude Include="Surface.h" />
+    <ClInclude Include="ColladaMeshFactory.h" />
+    <ClInclude Include="DXSDKMeshFactory.h" />
+    <ClInclude Include="TransformationNode_KeyFrames.h" />
+    <ClInclude Include="TransformationNode.h" />
+    <ClInclude Include="TransformationNode_Curves.h" />
+    <ClInclude Include="TransformationNode_Hierarchy.h" />
+    <ClInclude Include="AnimationCurve.h" />
+    <ClInclude Include="AnimationEnums.h" />
+    <ClInclude Include="Bone.h" />
+    <ClInclude Include="BoneHierarchy.h" />
+    <ClInclude Include="BoneInstance.h" />
+    <ClInclude Include="BoneInstanceHierarchy.h" />
+    <ClInclude Include="CPUParticle.h" />
+    <ClInclude Include="CPUParticleData.h" />
+    <ClInclude Include="CPUParticleEmittorData.h" />
+    <ClInclude Include="CPUParticleEmittorInstance.h" />
+    <ClInclude Include="Instance.h" />
+    <ClInclude Include="TransformationNodeInstance.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="TextureContainer.h" />
+    <ClInclude Include="Renderer.h" />
+    <ClInclude Include="Engine.h" />
+    <ClInclude Include="FullscreenHelper.h" />
+    <ClInclude Include="RenderTarget.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="Scene.h" />
+    <ClInclude Include="Streak.h" />
+    <ClInclude Include="StreakParticle.h" />
+    <ClInclude Include="Application.h" />
+    <ClInclude Include="ComputedInstance.h" />
+    <ClInclude Include="ComputedModel.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\DeferredRendering.fx" />
+    <None Include="..\data\Labb.fxh" />
+    <None Include="..\data\LabbBlackHole.fx" />
+    <None Include="..\data\LabbExplosive.fx" />
+    <None Include="..\data\LabbFat.fx" />
+    <None Include="..\data\LabbNormal.fx" />
+    <None Include="..\data\LabbReflexive.fx" />
+    <None Include="..\data\LabbStreached.fx" />
+    <None Include="..\data\LabbTallFat.fx" />
+    <None Include="..\data\LabbWave.fx" />
+    <None Include="..\data\nvidia.fx" />
+    <None Include="..\data\Particle_Shader.fx" />
+    <None Include="..\data\PostProcess.fx" />
+    <None Include="..\data\PosWeightBonesNorm.fx" />
+    <None Include="..\data\PosWeightBonesNormUV.fx" />
+    <None Include="..\data\PosWeightBonesNormUVTan.fx" />
+    <None Include="..\data\Streak.fx" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Labb 01.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CommonUtilities\CommonUtilities.vcxproj">
+      <Project>{d0c7251a-4a6b-407b-bba9-a899dfd01b4a}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\DL_Debug\DL_Debug.vcxproj">
+      <Project>{996e1cf5-234c-493f-9af9-e4e099b4b625}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\FI_File\FI_File.vcxproj">
+      <Project>{857350b1-5b9e-4177-a269-13bc2cb3bb59}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\tinyxml\tinyxml_lib.vcxproj">
+      <Project>{c406daec-0886-4771-8dea-9d7329b46cc1}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

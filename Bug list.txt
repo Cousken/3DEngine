@@ -1,0 +1,2 @@
+- rendering does not handle single value textures
+- minnes läcka

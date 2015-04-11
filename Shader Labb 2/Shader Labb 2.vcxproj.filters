@@ -1,0 +1,499 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Utilities">
+      <UniqueIdentifier>{b813e7fd-126a-40ce-a98f-43d353b6d576}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities\VectorMath">
+      <UniqueIdentifier>{2e4b97ae-0200-4883-8eb6-031c0cebbab7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utilities\Input">
+      <UniqueIdentifier>{5dc0dfe8-c450-4228-9f42-1be79c73525a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lights">
+      <UniqueIdentifier>{d03cb2ac-57ed-47c3-9b91-91411e3cc25e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Frustrum">
+      <UniqueIdentifier>{2fe725cf-afdc-40a1-9c93-1bdeeed9f2b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Loose Oct Tree">
+      <UniqueIdentifier>{0e14f5cb-4b0e-4665-a40a-6fa14fbb3e7e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Effects">
+      <UniqueIdentifier>{c9fee158-78a7-44aa-a606-80ce1a2f1732}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Model">
+      <UniqueIdentifier>{2cd56b73-08b8-4aac-83cf-ea2193913863}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Model\MeshFactory">
+      <UniqueIdentifier>{ae7a444d-5490-4b47-8071-39dd5e28a0b6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Model\TransformationNode">
+      <UniqueIdentifier>{b4847bad-1f1c-41fb-bd10-59b3cadcf086}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Model\Animation">
+      <UniqueIdentifier>{0e00814e-52bb-42c6-9b06-268e7889f308}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Model\Animation\Bone">
+      <UniqueIdentifier>{8516ba34-66c8-414f-b802-e48a726888f9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Particles">
+      <UniqueIdentifier>{232c33f4-7576-44ab-99d7-7ba4cd3d3715}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Instance">
+      <UniqueIdentifier>{896e7128-178e-4161-9c4e-b0228ad6fd22}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Texture">
+      <UniqueIdentifier>{49acf842-d083-4cea-8908-ef15a9af3a68}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{9e26eb76-ff61-445c-94bd-bfd5000401e0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine">
+      <UniqueIdentifier>{31538136-2b57-4db1-90ce-e311f8893f49}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\RenderTarget">
+      <UniqueIdentifier>{7839908b-4215-4bd4-a4dc-159e306e31d7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Camera">
+      <UniqueIdentifier>{3827b8fe-ab13-4cd6-ae96-aa23efaf41d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Scene">
+      <UniqueIdentifier>{728821f7-401a-473f-825b-b9feee69961f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Streak">
+      <UniqueIdentifier>{983eb22e-5f51-4366-82b9-c47626fe25ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Application">
+      <UniqueIdentifier>{3a0ec747-4e46-4372-9601-5064d9f8ee81}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ComputedGeometry">
+      <UniqueIdentifier>{075c8c6d-0707-4eae-bfda-72aee2c4c855}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SetupInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SystemTimer.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Time.cpp">
+      <Filter>Utilities</Filter>
+    </ClCompile>
+    <ClCompile Include="Input.cpp">
+      <Filter>Utilities\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="InputCore.cpp">
+      <Filter>Utilities\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Light.cpp">
+      <Filter>Lights</Filter>
+    </ClCompile>
+    <ClCompile Include="Frustum.cpp">
+      <Filter>Frustrum</Filter>
+    </ClCompile>
+    <ClCompile Include="OOBB.cpp">
+      <Filter>Frustrum</Filter>
+    </ClCompile>
+    <ClCompile Include="Structures.cpp">
+      <Filter>Frustrum</Filter>
+    </ClCompile>
+    <ClCompile Include="OctTree.cpp">
+      <Filter>Loose Oct Tree</Filter>
+    </ClCompile>
+    <ClCompile Include="TreeDweller.cpp">
+      <Filter>Loose Oct Tree</Filter>
+    </ClCompile>
+    <ClCompile Include="TreeNode.cpp">
+      <Filter>Loose Oct Tree</Filter>
+    </ClCompile>
+    <ClCompile Include="Effect.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="EffectContainer.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="EffectInput.cpp">
+      <Filter>Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Model.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="ModelContainer.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderProcessTarget.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="Surface.cpp">
+      <Filter>Model</Filter>
+    </ClCompile>
+    <ClCompile Include="ColladaMeshFactory.cpp">
+      <Filter>Model\MeshFactory</Filter>
+    </ClCompile>
+    <ClCompile Include="DXSDKMeshFactory.cpp">
+      <Filter>Model\MeshFactory</Filter>
+    </ClCompile>
+    <ClCompile Include="TransformationNode_KeyFrames.cpp">
+      <Filter>Model\MeshFactory</Filter>
+    </ClCompile>
+    <ClCompile Include="TransformationNode.cpp">
+      <Filter>Model\TransformationNode</Filter>
+    </ClCompile>
+    <ClCompile Include="TransformationNode_Curves.cpp">
+      <Filter>Model\TransformationNode</Filter>
+    </ClCompile>
+    <ClCompile Include="TransformationNode_Hierarchy.cpp">
+      <Filter>Model\TransformationNode</Filter>
+    </ClCompile>
+    <ClCompile Include="AnimationCurve.cpp">
+      <Filter>Model\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Bone.cpp">
+      <Filter>Model\Animation\Bone</Filter>
+    </ClCompile>
+    <ClCompile Include="BoneHierarchy.cpp">
+      <Filter>Model\Animation\Bone</Filter>
+    </ClCompile>
+    <ClCompile Include="BoneInstance.cpp">
+      <Filter>Model\Animation\Bone</Filter>
+    </ClCompile>
+    <ClCompile Include="BoneInstanceHierarchy.cpp">
+      <Filter>Model\Animation\Bone</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUParticle.cpp">
+      <Filter>Particles</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUParticleData.cpp">
+      <Filter>Particles</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUParticleEmittorData.cpp">
+      <Filter>Particles</Filter>
+    </ClCompile>
+    <ClCompile Include="CPUParticleEmittorInstance.cpp">
+      <Filter>Particles</Filter>
+    </ClCompile>
+    <ClCompile Include="Instance.cpp">
+      <Filter>Instance</Filter>
+    </ClCompile>
+    <ClCompile Include="TransformationNodeInstance.cpp">
+      <Filter>Instance</Filter>
+    </ClCompile>
+    <ClCompile Include="Texture.cpp">
+      <Filter>Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureContainer.cpp">
+      <Filter>Texture</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="FullscreenHelper.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderTarget.cpp">
+      <Filter>Engine\RenderTarget</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
+      <Filter>Scene</Filter>
+    </ClCompile>
+    <ClCompile Include="Streak.cpp">
+      <Filter>Streak</Filter>
+    </ClCompile>
+    <ClCompile Include="StreakParticle.cpp">
+      <Filter>Streak</Filter>
+    </ClCompile>
+    <ClCompile Include="Application.cpp">
+      <Filter>Application</Filter>
+    </ClCompile>
+    <ClCompile Include="ComputedInstance.cpp">
+      <Filter>ComputedGeometry</Filter>
+    </ClCompile>
+    <ClCompile Include="ComputedModel.cpp">
+      <Filter>ComputedGeometry</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="BufferWrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource1.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SetupInfo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CU_GrowingArray.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="LoopMacros.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Macros.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="StaticArray.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="SystemTimer.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Time.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Matrix.h">
+      <Filter>Utilities\VectorMath</Filter>
+    </ClInclude>
+    <ClInclude Include="Matrix33.h">
+      <Filter>Utilities\VectorMath</Filter>
+    </ClInclude>
+    <ClInclude Include="Matrix44.h">
+      <Filter>Utilities\VectorMath</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector.h">
+      <Filter>Utilities\VectorMath</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector2.h">
+      <Filter>Utilities\VectorMath</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector3.h">
+      <Filter>Utilities\VectorMath</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector4.h">
+      <Filter>Utilities\VectorMath</Filter>
+    </ClInclude>
+    <ClInclude Include="Input.h">
+      <Filter>Utilities\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="InputCore.h">
+      <Filter>Utilities\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Keys.h">
+      <Filter>Utilities\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="MouseButtons.h">
+      <Filter>Utilities\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Light.h">
+      <Filter>Lights</Filter>
+    </ClInclude>
+    <ClInclude Include="Frustum.h">
+      <Filter>Frustrum</Filter>
+    </ClInclude>
+    <ClInclude Include="OOBB.h">
+      <Filter>Frustrum</Filter>
+    </ClInclude>
+    <ClInclude Include="Structures.h">
+      <Filter>Frustrum</Filter>
+    </ClInclude>
+    <ClInclude Include="OctTree.h">
+      <Filter>Loose Oct Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="TreeDweller.h">
+      <Filter>Loose Oct Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="TreeNode.h">
+      <Filter>Loose Oct Tree</Filter>
+    </ClInclude>
+    <ClInclude Include="Effect.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="EffectContainer.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="EffectInput.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="EffectTechnique.h">
+      <Filter>Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Model.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="ModelContainer.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderProcessTarget.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="Surface.h">
+      <Filter>Model</Filter>
+    </ClInclude>
+    <ClInclude Include="ColladaMeshFactory.h">
+      <Filter>Model\MeshFactory</Filter>
+    </ClInclude>
+    <ClInclude Include="DXSDKMeshFactory.h">
+      <Filter>Model\MeshFactory</Filter>
+    </ClInclude>
+    <ClInclude Include="TransformationNode_KeyFrames.h">
+      <Filter>Model\MeshFactory</Filter>
+    </ClInclude>
+    <ClInclude Include="TransformationNode.h">
+      <Filter>Model\TransformationNode</Filter>
+    </ClInclude>
+    <ClInclude Include="TransformationNode_Curves.h">
+      <Filter>Model\TransformationNode</Filter>
+    </ClInclude>
+    <ClInclude Include="TransformationNode_Hierarchy.h">
+      <Filter>Model\TransformationNode</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationCurve.h">
+      <Filter>Model\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="AnimationEnums.h">
+      <Filter>Model\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Bone.h">
+      <Filter>Model\Animation\Bone</Filter>
+    </ClInclude>
+    <ClInclude Include="BoneHierarchy.h">
+      <Filter>Model\Animation\Bone</Filter>
+    </ClInclude>
+    <ClInclude Include="BoneInstance.h">
+      <Filter>Model\Animation\Bone</Filter>
+    </ClInclude>
+    <ClInclude Include="BoneInstanceHierarchy.h">
+      <Filter>Model\Animation\Bone</Filter>
+    </ClInclude>
+    <ClInclude Include="CPUParticle.h">
+      <Filter>Particles</Filter>
+    </ClInclude>
+    <ClInclude Include="CPUParticleData.h">
+      <Filter>Particles</Filter>
+    </ClInclude>
+    <ClInclude Include="CPUParticleEmittorData.h">
+      <Filter>Particles</Filter>
+    </ClInclude>
+    <ClInclude Include="CPUParticleEmittorInstance.h">
+      <Filter>Particles</Filter>
+    </ClInclude>
+    <ClInclude Include="Instance.h">
+      <Filter>Instance</Filter>
+    </ClInclude>
+    <ClInclude Include="TransformationNodeInstance.h">
+      <Filter>Instance</Filter>
+    </ClInclude>
+    <ClInclude Include="Texture.h">
+      <Filter>Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureContainer.h">
+      <Filter>Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>Renderer</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="FullscreenHelper.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderTarget.h">
+      <Filter>Engine\RenderTarget</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Scene.h">
+      <Filter>Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Streak.h">
+      <Filter>Streak</Filter>
+    </ClInclude>
+    <ClInclude Include="StreakParticle.h">
+      <Filter>Streak</Filter>
+    </ClInclude>
+    <ClInclude Include="Application.h">
+      <Filter>Application</Filter>
+    </ClInclude>
+    <ClInclude Include="ComputedInstance.h">
+      <Filter>ComputedGeometry</Filter>
+    </ClInclude>
+    <ClInclude Include="ComputedModel.h">
+      <Filter>ComputedGeometry</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\data\DeferredRendering.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\Labb.fxh">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\LabbBlackHole.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\LabbExplosive.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\LabbFat.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\LabbNormal.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\LabbReflexive.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\LabbStreached.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\LabbTallFat.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\LabbWave.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\nvidia.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\Particle_Shader.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\PostProcess.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\PosWeightBonesNorm.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\PosWeightBonesNormUV.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\PosWeightBonesNormUVTan.fx">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\data\Streak.fx">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Labb 01.rc">
+      <Filter>Shaders</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>
