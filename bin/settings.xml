@@ -1,0 +1,6 @@
+<?xml version="1.0" standalone="no"?>
+<Settings>
+  <Resolution Width ="800" Height="800" />
+  <SessionName>d3d10game</SessionName>
+  <ApplicationName>My First 3D Game</ApplicationName>
+</Settings>

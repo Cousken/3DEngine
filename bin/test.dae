@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset>
+    <contributor>
+      <author>kgia1</author>
+      <authoring_tool>COLLADA Maya2009</authoring_tool>
+      <comments>ColladaMaya export options: bakeTransforms=0;exportPolygonMeshes=1;bakeLighting=0;isSampling=0;
+curveConstrainSampling=0;removeStaticCurves=1;exportCameraAsLookat=0;
+exportLights=1;exportCameras=1;exportJointsAndSkin=1;
+exportAnimations=1;exportTriangles=0;exportInvisibleNodes=0;
+exportNormals=1;exportTexCoords=1;
+exportVertexColors=1;exportVertexColorsAnimation=0;exportTangents=0;
+exportTexTangents=0;
+exportConstraints=1;exportPhysics=1;
+exportXRefs=1;dereferenceXRefs=1;
+cameraXFov=0;cameraYFov=1</comments>
+      <source_data>file:///H:/maya/projects/niklasCube/scenes/niklasCubeMaster01.mb</source_data>
+    </contributor>
+    <created>2009-09-25T16:17:34</created>
+    <modified>2009-09-25T16:17:34</modified>
+    <unit name="centimeter" meter="0.01"/>
+    <up_axis>Y_UP</up_axis>
+  </asset>
+  <library_materials>
+    <material id="diceShader" name="diceShader">
+      <instance_effect url="#diceShader-fx"/>
+    </material>
+  </library_materials>
+  <library_effects>
+    <effect id="diceShader-fx">
+      <profile_COMMON>
+        <newparam sid="file2-surface">
+          <surface type="2D">
+            <init_from>file2</init_from>
+            <format>A8R8G8B8</format>
+          </surface>
+        </newparam>
+        <newparam sid="file2-sampler">
+          <sampler2D>
+            <source>file2-surface</source>
+          </sampler2D>
+        </newparam>
+        <technique sid="common">
+          <blinn>
+            <emission>
+              <color>0 0 0 1</color>
+            </emission>
+            <ambient>
+              <color>0.10744 0.10744 0.10744 1</color>
+            </ambient>
+            <diffuse>
+              <texture texture="file2-sampler" texcoord="CHANNEL2">
+                <extra>
+                  <technique profile="MAYA">
+                    <blend_mode>NONE</blend_mode>
+                    <coverageU>1</coverageU>
+                    <coverageV>1</coverageV>
+                    <fast>0</fast>
+                    <mirrorU>0</mirrorU>
+                    <mirrorV>0</mirrorV>
+                    <noiseU>0</noiseU>
+                    <noiseV>0</noiseV>
+                    <offsetU>0</offsetU>
+                    <offsetV>0</offsetV>
+                    <repeatU>1</repeatU>
+                    <repeatV>1</repeatV>
+                    <rotateFrame>0</rotateFrame>
+                    <rotateUV>0</rotateUV>
+                    <stagger>0</stagger>
+                    <translateFrameU>0</translateFrameU>
+                    <translateFrameV>0</translateFrameV>
+                    <wrapU>1</wrapU>
+                    <wrapV>1</wrapV>
+                  </technique>
+                </extra>
+              </texture>
+            </diffuse>
+            <specular>
+              <color>0.5 0.5 0.5 1</color>
+            </specular>
+            <shininess>
+              <float>0.3</float>
+            </shininess>
+            <reflective>
+              <color>0 0 0 1</color>
+            </reflective>
+            <reflectivity>
+              <float>0.5</float>
+            </reflectivity>
+            <transparent opaque="RGB_ZERO">
+              <color>0 0 0 1</color>
+            </transparent>
+            <transparency>
+              <float>1</float>
+            </transparency>
+          </blinn>
+          <extra>
+            <technique profile="COLLADA">
+              <bump>
+                <texture texture="file1-sampler" texcoord="CHANNEL1">
+                  <extra>
+                    <technique profile="MAX3D">
+                      <amount>1</amount>
+                      <bumpInterp>1</bumpInterp>
+                    </technique>
+                    <technique profile="MAYA">
+                      <blend_mode>NONE</blend_mode>
+                      <coverageU>1</coverageU>
+                      <coverageV>1</coverageV>
+                      <fast>0</fast>
+                      <mirrorU>0</mirrorU>
+                      <mirrorV>0</mirrorV>
+                      <noiseU>0</noiseU>
+                      <noiseV>0</noiseV>
+                      <offsetU>0</offsetU>
+                      <offsetV>0</offsetV>
+                      <repeatU>1</repeatU>
+                      <repeatV>1</repeatV>
+                      <rotateFrame>0</rotateFrame>
+                      <rotateUV>0</rotateUV>
+                      <stagger>0</stagger>
+                      <translateFrameU>0</translateFrameU>
+                      <translateFrameV>0</translateFrameV>
+                      <wrapU>1</wrapU>
+                      <wrapV>1</wrapV>
+                    </technique>
+                  </extra>
+                </texture>
+              </bump>
+            </technique>
+          </extra>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_images>
+    <image id="file2" name="file2">
+      <init_from>diceColorMap.dds</init_from>
+      <extra>
+        <technique profile="MAYA">
+          <dgnode_type>kFile</dgnode_type>
+          <image_sequence>0</image_sequence>
+        </technique>
+      </extra>
+    </image>
+    <image id="file1" name="file1">
+      <init_from>diceTangentSpaceNormalMap.dds</init_from>
+      <extra>
+        <technique profile="MAYA">
+          <dgnode_type>kFile</dgnode_type>
+          <image_sequence>0</image_sequence>
+        </technique>
+      </extra>
+    </image>
+  </library_images>
+  <library_geometries>
+    <geometry id="pCubeShape2" name="pCubeShape2">
+      <mesh>
+        <source id="pCubeShape2-positions" name="pCubeShape2-positions">
+          <float_array id="pCubeShape2-positions-array" count="24">-0.500935 -0.500935 0.500935 0.500935 -0.500935 0.500935 -0.500935 0.500935 0.500935 0.500935 0.500935 0.500935 -0.500935 0.500935 -0.500935 0.500935 0.500935 -0.500935 -0.500935 -0.500935 -0.500935 0.500935 -0.500935 -0.500935</float_array>
+          <technique_common>
+            <accessor source="#pCubeShape2-positions-array" count="8" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="pCubeShape2-normals" name="pCubeShape2-normals">
+          <float_array id="pCubeShape2-normals-array" count="24">-0.57735 -0.57735 0.57735 0.57735 -0.57735 0.57735 -0.57735 0.57735 0.57735 0.57735 0.57735 0.57735 -0.57735 0.57735 -0.57735 0.57735 0.57735 -0.57735 -0.57735 -0.57735 -0.57735 0.57735 -0.57735 -0.57735</float_array>
+          <technique_common>
+            <accessor source="#pCubeShape2-normals-array" count="8" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="pCubeShape2-map1" name="pCubeShape2-map1">
+          <float_array id="pCubeShape2-map1-array" count="32">0.00267696 0.664547 0.00267696 0.334258 0.341631 0.00516385 0.332966 0.334258 0.341631 0.335453 0.67192 0.335453 0.341631 0.665743 0.67192 0.665743 0.341631 0.996032 0.67192 0.996032 0.00267696 0.00396826 0.332966 0.00396827 0.00267697 0.994836 0.332966 0.994836 0.332966 0.664547 0.67192 0.00516385</float_array>
+          <technique_common>
+            <accessor source="#pCubeShape2-map1-array" count="16" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="pCubeShape2-vertices" name="pCubeShape2-vertices">
+          <input semantic="POSITION" source="#pCubeShape2-positions"/>
+          <input semantic="NORMAL" source="#pCubeShape2-normals"/>
+        </vertices>
+        <polylist material="blinn1SG" count="6">
+          <input semantic="VERTEX" source="#pCubeShape2-vertices" offset="0"/>
+          <input semantic="TEXCOORD" source="#pCubeShape2-map1" offset="1" set="0"/>
+          <vcount>4 4 4 4 4 4</vcount>
+          <p>0 0 1 1 3 3 2 14 2 2 3 15 5 5 4 4 4 4 5 5 7 7 6 6 6 6 7 7 1 9 0 8 1 1 7 10 5 11 3 3 6 12 0 0 2 14 4 13</p>
+        </polylist>
+      </mesh>
+      <extra>
+        <technique profile="MAYA">
+          <double_sided>1</double_sided>
+        </technique>
+      </extra>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="VisualSceneNode" name="niklasCubeMaster01">
+      <node id="pCube2" name="pCube2" type="NODE">
+        <translate sid="translate">0 0 0</translate>
+        <rotate sid="rotateZ">0 0 1 0</rotate>
+        <rotate sid="rotateY">0 1 0 0</rotate>
+        <rotate sid="rotateX">1 0 0 0</rotate>
+        <instance_geometry url="#pCubeShape2">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="blinn1SG" target="#diceShader"/>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#VisualSceneNode"/>
+  </scene>
+</COLLADA>
