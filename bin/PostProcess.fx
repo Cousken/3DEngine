@@ -289,9 +289,24 @@ float4 PS_DeferredDirectional( VS_OUTPUT_PP input ) : SV_TARGET
 	float4 finalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
 	finalColor += DirectionalLightColor * saturate(dot((float3)DirectionalLightDirection, Norm));
 
+	finalColor *= ThirdShaderResourceView.Sample(samLinear, input.Tex);
+
 	//spec stuff below
-	float3 halfVector = normalize(normalize(CameraPosition - worldPosition) + (float3)DirectionalLightDirection);
-    finalColor += saturate((1.11111f) * pow(dot(halfVector, Norm), 8.0f) * dot(DirectionalLightDirection, Norm));
+	//float3 halfVector = normalize(normalize(CameraPosition - worldPosition) + (float3)DirectionalLightDirection);
+    //finalColor += saturate((1.11111f) * pow(dot(halfVector, Norm), 256.0f) * dot(DirectionalLightDirection, Norm));
+
+	//spec stuff
+	//const float substance = 1.0f;
+	//const float roughness = 1.0f;
+	//const float3 toCameraDirection		= normalize( CameraPosition - worldPosition );
+	//const float3 toLightDirection		= normalize( DirectionalLightDirection );
+	//const int MaxGloss = 256;
+	//const float3 halfVector	= normalize( toCameraDirection + toLightDirection );
+	//const float fresnel		= substance + ( 1 - substance ) * pow( 1 - dot( halfVector, toLightDirection ), 5 );
+	//const float ap			= pow( MaxGloss, roughness );
+	//const float norm		= ( 2 + ap ) / 8;
+	//float SpecModifier = 1.0f;
+	//finalColor += ( ( norm * pow( abs( dot( halfVector, Norm ) ), abs( ap ) ) * fresnel * saturate( dot( Norm, toLightDirection ) ) * DirectionalLightColor) ) * SpecModifier;
 
 	return finalColor;
 }
@@ -334,27 +349,36 @@ float4 PS_DeferredPoint( VS_OUTPUT_PP input ) : SV_TARGET
 	float4 worldPosition = viewPosition / viewPosition.w; 
 
 	const float3 Norm = SecondaryShaderResourceView.Sample( samPointClamp, input.Tex );
-	float4 finalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	float3 vectorToLight = PointLightPosition - worldPosition;
 	float distance = length(vectorToLight);
-	float attenuation = max (0, (1 - (distance / PointLightMaxDistance)));
+	float attenuation = max(0.0f, (1.0f - (distance / PointLightMaxDistance)));
 	float normalizer = saturate(dot(normalize(vectorToLight), Norm));
-	finalColor += PointLightColor * normalizer * attenuation;
-	
-	//spec stuff
-	float3 pointLightDir = normalize(worldPosition - PointLightPosition);
-	float3 halfVector = normalize(normalize(CameraPosition - worldPosition) + (pointLightDir));
-	float specular = saturate(PointLightColor + float4(0.5f, 0.5f, 0.5f, 1.0f)) * pow(saturate(dot(halfVector, Norm)), 16);
-	finalColor += specular * attenuation;
-
-	// projected texture
-	float3 toWorld  = worldPosition - PointLightPosition;
-	float4 projectionStrength  = ProjectionTextureCube.Sample( samLinear, toWorld );
-	finalColor *= projectionStrength;
-	
+	float4 finalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
+	finalColor += PointLightColor;
+	finalColor *= normalizer;
+	finalColor *= attenuation;
 	finalColor *= ThirdShaderResourceView.Sample( samLinear, input.Tex );
+	
+	//projected texture
+	//float3 toWorld  = worldPosition - PointLightPosition;
+	//float4 projectionStrength  = ProjectionTextureCube.Sample( samLinear, toWorld );
+	//finalColor *= projectionStrength;
 
+	//spec stuff
+	const float substance = 1.0f;
+	const float roughness = 1.0f;
+	const float3 toCameraDirection		= normalize( CameraPosition - worldPosition );
+	const float3 toLightDirection		= normalize( PointLightPosition.xyz - worldPosition.xyz );
+	const int MaxGloss = 256;
+	const float3 halfVector	= normalize( toCameraDirection + toLightDirection );
+	const float fresnel		= substance + ( 1 - substance ) * pow( 1 - dot( halfVector, vectorToLight ), 5 );
+	const float ap			= pow( MaxGloss, roughness );
+	const float norm		= ( 2 + ap ) / 8;
+	float SpecModifier = 0.015f;
+	float4 specValue = ( ( norm * pow( abs( dot( halfVector, Norm ) ), abs( ap ) ) * fresnel * saturate( dot( Norm, vectorToLight ) ) * PointLightColor) ) * SpecModifier;
+	finalColor += specValue * attenuation;
+	finalColor.a = 1.0f;
 	return finalColor;
 }
 
@@ -389,24 +413,33 @@ float4 PS_DeferredSpot( VS_OUTPUT_PP input ) : SV_TARGET
 	float distance = length(vectorToLight);
 	float attenuation = max(0 , (1 - (distance / SpotLightMaxDistance)));
 	float angleFalloff = smoothstep(cos(SpotLightOuterFalloff), cos(SpotLightInnerFalloff), dot(normalize(-vectorToLight), SpotLightDirection));
-	finalColor += SpotLightColor * saturate(dot(normalize(vectorToLight), Norm)) * attenuation * angleFalloff;
+	finalColor += SpotLightColor * saturate(dot(normalize(vectorToLight), Norm));
 
-	float4 worldPositionLight = worldPosition;
-	worldPositionLight = mul( worldPositionLight, LightView );
-	worldPositionLight = mul( worldPositionLight, LightProjection );
-	float2 projectionTex  = worldPositionLight.xy / worldPositionLight.w;
-	projectionTex    = projectionTex * 0.5f + float2( 0.5f, 0.5f );
-	projectionTex.y    = 1.0f - projectionTex.y;
-	float4 projectionStrength  = ProjectionTexture2D.Sample( samPointClamp, projectionTex );
-
-// 	float4 projectionTexCoors = mul(worldPosition, LightView);
-//  	projectionTexCoors = mul(projectionTexCoors, LightProjection);
-//  	float4 projectionStrength = ProjectionTexture.Sample( sampleLinearClamp, float2( projectionTexCoors.x, projectionTexCoors.y ) );
-//  	 	
-	finalColor *= projectionStrength;
+	//float4 worldPositionLight = worldPosition;
+	//worldPositionLight = mul( worldPositionLight, LightView );
+	//worldPositionLight = mul( worldPositionLight, LightProjection );
+	//float2 projectionTex  = worldPositionLight.xy / worldPositionLight.w;
+	//projectionTex    = projectionTex * 0.5f + float2( 0.5f, 0.5f );
+	//projectionTex.y    = 1.0f - projectionTex.y;
+	//float4 projectionStrength  = ProjectionTexture2D.Sample( samPointClamp, projectionTex );
+	 	
+	//finalColor *= projectionStrength;
 
 	finalColor *= ThirdShaderResourceView.Sample( samLinear, input.Tex );
 
+	//spec stuff
+	const float substance = 1.0f;
+	const float roughness = 1.0f;
+	const float3 toCameraDirection	= normalize( CameraPosition - worldPosition );
+	const float3 toLightDirection		= normalize( SpotLightPosition.xyz - worldPosition.xyz );
+	const int MaxGloss = 256;
+	const float3 halfVector	= normalize( toCameraDirection + toLightDirection );
+	const float fresnel		= substance + ( 1 - substance ) * pow( 1 - dot( halfVector, vectorToLight ), 5 );
+	const float ap			= pow( MaxGloss, roughness );
+	const float norm		= ( 2 + ap ) / 8;
+	float SpecModifier = 0.015f;
+	finalColor += ( ( norm * pow( abs( dot( halfVector, Norm ) ), abs( ap ) ) * fresnel * saturate( dot( Norm, vectorToLight ) ) * SpotLightColor) ) * SpecModifier;
+	finalColor *= attenuation * angleFalloff;
 	return finalColor;
 }
 
@@ -422,6 +455,43 @@ technique10 Render_DeferredSpot
 		//SetDepthStencilState( FrontFaceCulling, 0 );
 		//SetRasterizerState( EnableScissorRect );
     }
+}
+
+technique10 Render_DeferredPointScissored
+{
+    pass P0
+    {
+        SetVertexShader( CompileShader( vs_4_0, VS_DeferredPoint() ) );
+        SetGeometryShader( NULL );
+        SetPixelShader( CompileShader( ps_4_0, PS_DeferredPoint() ) );
+
+		SetBlendState( BlendingAdd, float4( 0.0f, 0.0f, 0.0f, 0.0f ), 0xFFFFFFFF );
+		SetDepthStencilState( DisableDepth, 0 );
+        SetRasterizerState( EnableScissorRect );
+    }
+}
+technique10 Render_DeferredSpotScissored
+{
+    pass P0
+    {
+        SetVertexShader( CompileShader( vs_4_0, VS_DeferredPoint() ) );
+        SetGeometryShader( NULL );
+        SetPixelShader( CompileShader( ps_4_0, PS_DeferredSpot() ) );
+
+		SetBlendState( BlendingAdd, float4( 0.0f, 0.0f, 0.0f, 0.0f ), 0xFFFFFFFF );
+		SetDepthStencilState( DisableDepth, 0 );
+        SetRasterizerState( EnableScissorRect );
+    }
+}
+technique10 Render_DisableScissorRect
+{
+	pass P0
+	{
+		SetVertexShader( NULL );
+        SetGeometryShader( NULL );
+        SetPixelShader( NULL );
+		SetRasterizerState( DisableScissorRect );
+	}
 }
 
 struct VS_INPUT1
@@ -442,65 +512,6 @@ struct VS_OUTPUT1
     float4 WorldPos : WORLDPOS; 
     float3 Reflection : REFLECTIONVECT;
 };
-
-VS_OUTPUT1 VS_DeferredPointMesh( VS_INPUT1 aInput )
-{
-	VS_OUTPUT1 output = (VS_OUTPUT1)0;
-    output.Pos = mul( aInput.Pos, World );
-    output.Norm = mul( aInput.Norm, World );
-    output.WorldPos = output.Pos;
-    
-    float3 vectorToCamera = normalize ( CameraPosition - output.WorldPos );
-    output.Reflection = reflect( output.Norm, vectorToCamera );
-
-    output.Pos = mul( output.Pos, View );
-    output.Pos = mul( output.Pos, Projection );
-    
-    output.Tex = aInput.Tex; 
-	return output;
-}
-
-float4 PS_DeferredPointMesh( VS_OUTPUT1 input ) : SV_TARGET
-{
-	//return float4(0.0f, 1.0f, 0.0f, 1.0f);
-	//return float4(0.0f, 1.0f, 0.0f, 1.0f);
-	float depth = PrimaryShaderResourceView.Sample( samPointClamp, input.Tex );
-	float x = input.Tex.x * 2 - 1; 
-    float y = (1 - input.Tex.y) * 2 - 1;
-    float4 projectedPosition = float4(x, y, depth, 1.0f);
-	float4 viewPosition = mul(projectedPosition, invertedView);
-	float4 worldPosition = viewPosition / viewPosition.w; 
-
-	const float3 Norm = SecondaryShaderResourceView.Sample( samPointClamp, input.Tex );
-	float4 finalColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-
-	float3 vectorToLight = PointLightPosition - worldPosition;
-	float distance = length(vectorToLight);
-	float attenuation = max (0, (1 - (distance / PointLightMaxDistance)));
-	float normalizer = saturate(dot(normalize(vectorToLight), Norm));
-	finalColor += PointLightColor * normalizer * attenuation;
-	
-	//spec stuff
-	float3 pointLightDir = normalize(worldPosition - PointLightPosition);
-	float3 halfVector = normalize(normalize(CameraPosition - worldPosition) + (pointLightDir));
-	float specular = saturate(PointLightColor + float4(0.5f, 0.5f, 0.5f, 1.0f)) * pow(saturate(dot(halfVector, Norm)), 16);
-	finalColor += specular * attenuation;
-
-	return finalColor;
-}
-
-technique10 Render_DeferredPointMesh
-{
-    pass P0
-    {
-        SetVertexShader( CompileShader( vs_4_0, VS_DeferredPointMesh() ) );
-        SetGeometryShader( NULL );
-        SetPixelShader( CompileShader( ps_4_0, PS_DeferredPointMesh() ) );
-
-		SetBlendState( BlendingAdd, float4( 0.0f, 0.0f, 0.0f, 0.0f ), 0xFFFFFFFF );
-		//SetRasterizerState(EnableCulling);
-    }
-}
 
 //SIMPLE SSAO
 float random_size = 0.1f;

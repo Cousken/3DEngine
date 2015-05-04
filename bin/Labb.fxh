@@ -236,6 +236,7 @@ shared DepthStencilState VolumeComplexityStencil
 shared RasterizerState DisableCulling
 {
     CullMode = NONE;
+	ScissorEnable = FALSE;
 };
 
 shared BlendState OpaqueRendering
@@ -253,6 +254,7 @@ shared DepthStencilState DisableDepth
 shared RasterizerState EnableCulling
 {
     CullMode = BACK;
+	ScissorEnable = FALSE;
 };
 
 shared DepthStencilState ZTestLess_DS
@@ -276,4 +278,9 @@ shared RasterizerState EnableScissorRect
 {
 	CullMode = NONE;
     ScissorEnable = TRUE;
+};
+shared RasterizerState DisableScissorRect
+{
+	CullMode = BACK;
+    ScissorEnable = FALSE;
 };
