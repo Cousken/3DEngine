@@ -3,11 +3,14 @@
 
 shared Texture2D DiffuseMap;
 shared TextureCube EnviromentMap;
+shared TextureCube ReflectionMap;
 shared Texture2D NormalMap;
+shared Texture2D LinearDepth;
 
 shared Texture2D PrimaryShaderResourceView;
 shared Texture2D SecondaryShaderResourceView;
 shared Texture2D ThirdShaderResourceView;
+shared Texture2D ShadowTexture;
 shared Texture2D CurrentVelocityTexture;
 shared Texture2D PreviousVelocityTexture;
 shared Texture2D RandomSSAOTexture;
@@ -69,6 +72,8 @@ shared cbuffer DynamicShared
 	float DeltaTime;
 	float3 BlackHolePosition;
 	float2 texelSize;
+	
+	float3 AmbientProbePosition;
 }
 
 shared SamplerState samPointClamp 
@@ -90,6 +95,13 @@ shared SamplerState samLinear
     Filter = MIN_MAG_MIP_LINEAR;
     AddressU = Wrap;
     AddressV = Wrap;
+};
+
+shared SamplerState sampleLinearPointClamp
+{
+	Filter = MIN_MAG_LINEAR_MIP_POINT;
+    AddressU = Clamp;
+    AddressV = Clamp;
 };
 
 shared BlendState BlendingAdd 

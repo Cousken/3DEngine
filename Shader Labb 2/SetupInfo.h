@@ -12,7 +12,6 @@ public:
 	~SetupInfo(void);
 	
 	void LoadFromFile();
-
 	char* GetCurrentWorkingDirectory();
 
 	std::string myApplicationName;

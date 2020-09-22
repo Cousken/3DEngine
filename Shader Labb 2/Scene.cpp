@@ -4,13 +4,13 @@
 
 Scene::Scene(void)
 {
-	myVisibleInstances.Init(10, 10);
+	//myVisibleInstances.Init(10, 10);
 	myAllInstances.Init(10,10);
 	myLights.Init(10,10);
 	myStreaks.Init(10, 10);
 //	myEmittors.Init(10, 10);
 
-	myOctTree.BuildTree(Vector3f(0,0,0), 5000.0f, 8, 1.0f);
+	//myOctTree.BuildTree(Vector3f(0,0,0), 5000.0f, 8, 1.0f);
 }
 
 Scene::~Scene(void)
@@ -20,7 +20,19 @@ Scene::~Scene(void)
 void Scene::AddInstance( Instance* aInstnace )
 {
 	myAllInstances.Add(aInstnace);
-	myOctTree.InsertObject(myOctTree.GetRoot(), new TreeDweller(aInstnace) );
+	//myOctTree.InsertObject(myOctTree.GetRoot(), new TreeDweller(aInstnace) );
+}
+
+void Scene::RemoveInstance(Instance* anInstance)
+{
+	for(int i = 0; i < myAllInstances.Count(); i++)
+	{
+		if(myAllInstances[i] == anInstance)
+		{
+			myAllInstances.RemoveCyclicAtIndex(i);
+			break;
+		}
+	}
 }
 
 void Scene::SetCamera( Camera& aCamera )
@@ -49,10 +61,10 @@ void Scene::RenderToTarget( RenderProcessTarget& aRenderTarget )
 
 void Scene::RenderInstancesToTarget( RenderProcessTarget& aRenderTarget )
 {
-	const int nbrOfInstances = myVisibleInstances.Count();
+	const int nbrOfInstances = myAllInstances.Count();
 	for (int instanceRendered = 0; instanceRendered < nbrOfInstances; instanceRendered++)
 	{
-		myVisibleInstances[instanceRendered]->RenderToTarget(myCamera, EffectTechniques::AMBIENT, aRenderTarget);
+		myAllInstances[instanceRendered]->RenderToTarget(myCamera, EffectTechniques::AMBIENT, aRenderTarget);
 	}
 }
 
@@ -65,21 +77,24 @@ void Scene::RenderToCube( const CommonUtilities::StaticArray< Matrix44f, 6 >& so
 
 void Scene::RenderInstances()
 {
-	const int nbrOfInstances = myVisibleInstances.Count();
+	const int nbrOfInstances = myAllInstances.Count();
 
 	for (int instanceRendered = 0; instanceRendered < nbrOfInstances; instanceRendered++)
 	{
-		myVisibleInstances[instanceRendered]->Render(myCamera, EffectTechniques::NORMAL);
+		myAllInstances[instanceRendered]->Render(myCamera, EffectTechniques::NORMAL);
 	}
 }
 
 void Scene::RenderInstances( const EffectTechniques::TechniqueType aTechnique )
 {
-	const int nbrOfInstances = myVisibleInstances.Count();
+	const int nbrOfInstances = myAllInstances.Count();
 
 	for (int instanceRendered = 0; instanceRendered < nbrOfInstances; instanceRendered++)
 	{
-		myVisibleInstances[instanceRendered]->Render(myCamera, aTechnique );
+		if(myAllInstances[instanceRendered]->myIsInsideFrustrum == true)
+		{
+			myAllInstances[instanceRendered]->Render(myCamera, aTechnique );
+		}
 	}
 }
 
@@ -88,6 +103,17 @@ void Scene::AddLight( Light* aLight )
 	myLights.Add(aLight);
 }
 
+void Scene::RemoveLight(Light* aLight)
+{
+	for(int i = 0; i < myLights.Count(); i++)
+	{
+		if(myLights[i] == aLight)
+		{
+			myLights.RemoveCyclicAtIndex(i);
+			break;
+		}
+	}
+}
 
 void Scene::AddEmittor( CPUParticleEmittorInstance* myParticleEmittor )
 {
@@ -111,17 +137,17 @@ void Scene::GetObjectsWithinLightRadius( std::vector<Instance*>& someObjectWithi
 {
 	if (aLight.GetType() != Light::DIRECTIONAL_LIGHT_TYPE)
 	{
-		const int nbrOfInstances = myVisibleInstances.Count();
+		const int nbrOfInstances = myAllInstances.Count();
 		const float lightRadius = aLight.GetMaxDistance();
 		for (int instanceChecked = 0; instanceChecked < nbrOfInstances; instanceChecked++)
 		{
 			Vector3f instancePosition(0,0,0);
-			myVisibleInstances[instanceChecked]->GetPosition(instancePosition);
+			myAllInstances[instanceChecked]->GetPosition(instancePosition);
 			const float distnace = (aLight.GetPosition() - instancePosition).Length();
-			const float sumOfRadiuses = lightRadius + myVisibleInstances[instanceChecked]->GetModel().GetRadius();
+			const float sumOfRadiuses = lightRadius + myAllInstances[instanceChecked]->GetModel().GetRadius();
 			if ( distnace <= sumOfRadiuses )
 			{
-				someObjectWithinRadius.push_back(myVisibleInstances[instanceChecked]);
+				someObjectWithinRadius.push_back(myAllInstances[instanceChecked]);
 			}
 		}
 	}
@@ -182,8 +208,9 @@ void Scene::UpdateObjects( const float aDelta )
 		myAllInstances[instanceUpdated]->Update(aDelta);
 	}	
 	
-	myVisibleInstances.RemoveAll();
-	myOctTree.Update(myCamera.GetFrustrum(), myVisibleInstances);
+	//myVisibleInstances.RemoveAll();
+	//myOctTree.Update(myCamera.GetFrustrum(), myVisibleInstances);
+	//myCamera.GetFrustrum().SphereInside(Vector3f(0.0f, 0.0f, 0.0f), 1.0f);
 }
 
 void Scene::AddStreak( Streak& aStreak )

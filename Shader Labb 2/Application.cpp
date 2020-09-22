@@ -10,26 +10,30 @@
 #define PI 3.14159265f
 
 const float LocKeyPressCooldown = 0.2f;
+int locNumberOfBounces = 0;
+int locBounceIndex = 0;
+int locProbeIndex = 0;
+Vector3f Application::ourAmbientProbePositions[5];
+Vector3f locMovement = Vector3f(0.0f, 0.0f, 0.0f);
+float locAccelerator = 0.0f;
 
 bool Application::Init()
 {
+	myCurrentAmbientProbeIndex = -1;
+
+	myPointLights.Init(500, 1);
+	mySpotLights.Init(500, 1);
+	myInstances.Init(500, 1);
+
 	myInputHandler = new Library2D::Input(GetModuleHandle(NULL), Engine::GetInstance()->GetWindowHandler());
 
 	InitModels();
-	//InitCubeRoomMap();
-	InitPlaneWithBallsMap();
-	//InitThreeRooms();
+	InitAmbientLabb();
 
-	Instance *sphere = new Instance(*myBallModel);
-	sphere->Init();
-	sphere->SetPosition(Vector3f(0.0f, 0.0f, 0.0f)); 
-	myInstances[1000] = sphere;
-	//Engine::GetInstance()->GetScene().AddInstance(sphere);
-	Engine::GetInstance()->GetRenderer().GetFullScreenHelper().SetDeferredRenderingSphere(sphere);
+	Engine::GetInstance()->GetRenderer().mySphereMesh = new Instance(*myBallModels[0]);
+	Engine::GetInstance()->GetRenderer().mySphereMesh->Init();
 	
 	Engine::GetInstance()->GetScene().SetCamera(myCamera);	
-
-	myKeyPressCooldownTimer = 0.0f;
 
 	return true;
 }
@@ -43,10 +47,13 @@ bool Application::Update()
 {
 	mySystemTimer.Update();
 	float delta = mySystemTimer.GetDeltaTime();	
+	if(delta > 0.05f)
+	{
+		delta = 0.05f;
+	}
 	myKeyPressCooldownTimer += delta;
 
 	HandleInput(delta);
-	myStreak.Move(Vector3f(delta, 0,0));
 
 	myTime += delta;
 	Engine::GetInstance()->GetEffectInput().SetScalar("time", myTime);
@@ -55,17 +62,34 @@ bool Application::Update()
 
 	UpdateFPS( delta );
 
-	if ( myBlueLight != NULL)
+	//if ( myBlueLight != NULL)
+	//{
+	//	myBlueLight->Rotate( Matrix33f::CreateRotateAroundY(delta*2) );
+	//}
+	//if ( myRedLight != NULL)
+	//{
+	//	myRedLight->Rotate( Matrix33f::CreateRotateAroundY( -delta) );
+	//}
+	if(myGfxEngine.GetRenderer().myTogglePointOrSpotLight == true)
 	{
-		myBlueLight->Rotate( Matrix33f::CreateRotateAroundY(delta*2) );
-	}
-	if ( myRedLight != NULL)
-	{
-		myRedLight->Rotate( Matrix33f::CreateRotateAroundY( -delta) );
+		locAccelerator += delta;
+		if(locAccelerator > 6.28f)
+		{
+			locAccelerator = -6.28f;
+		}
+		locMovement.y = sinf(locAccelerator) * delta * 3.14f;
+
+		for(int index = 0; index < myInstances.Count(); index++)
+		{
+			if(&myInstances[index]->myModel == myBallModels[0])
+			{
+				Vector3f newPosition = myInstances[index]->GetPosition2() + locMovement;
+				myInstances[index]->SetPosition(newPosition);
+			}
+		}
 	}
 
 	myGfxEngine.SwitchBuffers();
-	myGfxEngine.RenderScene();
 	return(true);
 }
 
@@ -74,12 +98,14 @@ Application::Application( Engine& aGFXEngine )
 {
 	myCamera = Camera();
 	myTime = 0;
-	myGroundModel = 0;
 	myLevelModel = NULL;
 	myBlueLight = NULL;
 	myRedLight = NULL;
+	myConeModel = NULL;
 
 	myHasRenderedCube = 0;
+
+	myKeyPressCooldownTimer = 0.0f;
 }
 
 Application::~Application()
@@ -91,35 +117,70 @@ void Application::Render()
 {
 	Engine::GetInstance()->GetScene().SetCamera(myCamera);
 
-	if ( myHasRenderedCube < 2 )
+	if ( myHasRenderedCube < 1 )
 	{
-//		RenderReflectionCubeMap();
+		Engine::GetInstance()->GetRenderer().ResetStuff();
+
+		const float wallSize = 33.3333f;
+		const float halfWallSize = wallSize / 2.0f;
+
+		const int numberOfBounces = locNumberOfBounces;
+		const int numberOfAmbientProbes = 5;
+
+		ourAmbientProbePositions[0] = Vector3f(halfWallSize, wallSize, halfWallSize);	//room1
+		ourAmbientProbePositions[1] = Vector3f(0.0f, wallSize, wallSize * 2.5f);//corridoor 1
+		ourAmbientProbePositions[2] = Vector3f(halfWallSize, wallSize, wallSize * 4.5f);//room 2
+		ourAmbientProbePositions[3] = Vector3f(0.0f, wallSize, wallSize * 6.5f);//corridoor 2
+		ourAmbientProbePositions[4] = Vector3f(halfWallSize, wallSize, wallSize * 8.5f);//room 3
+
+		for(int bounceIndex = 0; bounceIndex < numberOfBounces; bounceIndex++)
+		{
+			for(int probeIndex = 0; probeIndex < numberOfAmbientProbes; probeIndex++)
+			{
+				Engine::GetInstance()->GetRenderer().RenderToCube( ourAmbientProbePositions[probeIndex], probeIndex );
+			}
+		}
 		myHasRenderedCube++;
 	}
-
-	Engine::GetInstance()->GetRenderer().Render();
+	else
+	{
+		Engine::GetInstance()->GetRenderer().Render();
+	}
 }
 
 void Application::HandleInput( float delta )
 {
 	myInputHandler->Update();
 
+	float speedBoost = 1.0f;
+	if(myInputHandler->IsKeyDown(Keys::LShift) == true)
+	{
+		speedBoost = 5.0f;
+	}
 	Vector3f cameraMovement = Vector3f(0,0,0);
 	if (myInputHandler->IsKeyDown(Keys::W) == true)
 	{
-		cameraMovement.z += CAMERA_SPEED * delta;
+		cameraMovement.z += CAMERA_SPEED * delta * speedBoost;
 	}
 	if (myInputHandler->IsKeyDown(Keys::S) == true)
 	{
-		cameraMovement.z -= CAMERA_SPEED  * delta;
+		cameraMovement.z -= CAMERA_SPEED  * delta * speedBoost;
 	}
 	if (myInputHandler->IsKeyDown(Keys::A) == true)
 	{
-		cameraMovement.x -= CAMERA_SPEED  * delta;
+		cameraMovement.x -= CAMERA_SPEED  * delta * speedBoost;
 	}
 	if (myInputHandler->IsKeyDown(Keys::D) == true)
 	{
-		cameraMovement.x += CAMERA_SPEED * delta;
+		cameraMovement.x += CAMERA_SPEED * delta * speedBoost;
+	}
+	if (myInputHandler->IsKeyDown(Keys::Q) == true)
+	{
+		myCamera.Rotate(Matrix33f::CreateRotateAroundZ(-1.0f * delta));
+	}
+	if (myInputHandler->IsKeyDown(Keys::E) == true)
+	{
+		myCamera.Rotate(Matrix33f::CreateRotateAroundZ(1.0f * delta));
 	}
 	cameraMovement = cameraMovement * myCamera.GetOrientation().Get33();
 	myCamera.Translate(cameraMovement);
@@ -146,16 +207,34 @@ void Application::HandleInput( float delta )
 	{
 		if(myKeyPressCooldownTimer > LocKeyPressCooldown)
 		{
-			myKeyPressCooldownTimer = 0.0f;
-			myGfxEngine.GetRenderer().myToggleQuadOrFullScreen = !myGfxEngine.GetRenderer().myToggleQuadOrFullScreen;
+			if(locProbeIndex == 0 && locBounceIndex == 0)
+			{
+				myKeyPressCooldownTimer = 0.0f;
+				//myGfxEngine.GetRenderer().myToggleAdvancedCulling = false;
+				myHasRenderedCube = 0;
+				locNumberOfBounces++;
+				if(locNumberOfBounces > 20)
+				{
+					locNumberOfBounces = 20;
+				}
+			}
 		}
 	}
 	if (myInputHandler->IsKeyDown(Keys::F2) == true)
 	{
 		if(myKeyPressCooldownTimer > LocKeyPressCooldown)
 		{
-			myKeyPressCooldownTimer = 0.0f;
-			myGfxEngine.GetRenderer().myToggleAdvancedCulling = !myGfxEngine.GetRenderer().myToggleAdvancedCulling;
+			if(locProbeIndex == 0 && locBounceIndex == 0)
+			{
+				myKeyPressCooldownTimer = 0.0f;
+				//myGfxEngine.GetRenderer().myToggleAdvancedCulling = true;
+				myHasRenderedCube = 0;
+				locNumberOfBounces--;
+				if(locNumberOfBounces < 0)
+				{
+					locNumberOfBounces = 0;
+				}
+			}
 		}
 	}
 	if (myInputHandler->IsKeyDown(Keys::F3) == true)
@@ -164,6 +243,14 @@ void Application::HandleInput( float delta )
 		{
 			myKeyPressCooldownTimer = 0.0f;
 			myGfxEngine.GetRenderer().myTogglePointOrSpotLight = !myGfxEngine.GetRenderer().myTogglePointOrSpotLight;
+		}
+	}
+	if (myInputHandler->IsKeyDown(Keys::F5) == true)
+	{
+		if(myKeyPressCooldownTimer > LocKeyPressCooldown)
+		{
+			myKeyPressCooldownTimer = 0.0f;
+			//myGfxEngine.GetRenderer().WriteAllToDisk();
 		}
 	}
 
@@ -177,20 +264,20 @@ void Application::HandleInput( float delta )
 
 void Application::UpdateFPS(const float aDeltaTime)
 {
-	const std::string stringToDisplay = "FPS: ";
 	static float timer = 0;
-	static int frameCounter = 0;
+	static int frameCounter = 1.0f / aDeltaTime;
 	timer += aDeltaTime;
-	frameCounter++;
 
 	if ( timer >= 1.0f)
 	{
 		timer = 0.0f;
-		std::string temp = "F1: Toggle Fullscreen || F2: Toggle Culling || F3: Toggle Point/Spotlights || ";
-		temp +=	stringToDisplay + ConvertToString(frameCounter);
-		Engine::GetInstance()->SetTitle( temp );
-		frameCounter = 0;
+		frameCounter = 1.0f / aDeltaTime;
 	}
+
+	//std::string stringToDisplay = "Cam X: " + ConvertToString(myCamera.GetPositionNotRetarded().myX) + " Cam Y: " + ConvertToString(myCamera.GetPositionNotRetarded().myY) + " Cam Z: " + ConvertToString(myCamera.GetPositionNotRetarded().myZ);
+	//std::string stringToDisplay = "Current Light Bounces (LBs): " + ConvertToString(locNumberOfBounces) + " || F1: LBs + 1 || F2: LBs - 1 || F3: Toggle dir light";
+	std::string stringToDisplay =  "Exponential Shadow Maps || F3: Toggle Sphere Movement || Current Light Bounces: " + ConvertToString(locNumberOfBounces) + " || LShift: Speed Boost || FPS: " + ConvertToString(frameCounter);
+	Engine::GetInstance()->SetTitle( stringToDisplay );
 }
 
 std::string Application::ConvertToString( const int aType )
@@ -200,534 +287,255 @@ std::string Application::ConvertToString( const int aType )
 	return converter.str();
 }
 
-void Application::RenderReflectionCubeMap()
+void Application::RenderReflectionCubeMap(int anAmbientProbeIndex)
 {
-	CommonUtilities::StaticArray< Matrix44f, 6 > toViewMatrixes;
-
-	D3DXMATRIX matrix;
-	Matrix44f ownMatixFormat;
-	Vector3f at = myBallPosition + Vector3f( 1, 0, 0 );
-	Vector3f up( 0, 1, 0 );
-	D3DXMatrixLookAtLH( &matrix, reinterpret_cast< D3DXVECTOR3* >( &myBallPosition.x ), reinterpret_cast< D3DXVECTOR3* >( &at.x ), reinterpret_cast< D3DXVECTOR3* >( &up.x ) );
-	ownMatixFormat.ConvertD3D(matrix);
-	toViewMatrixes[ 0 ] = Matrix44f( ownMatixFormat );
-
-	at = myBallPosition + Vector3f( -1, 0, 0 );
-	D3DXMatrixLookAtLH( &matrix, reinterpret_cast< D3DXVECTOR3* >( &myBallPosition.x ), reinterpret_cast< D3DXVECTOR3* >( &at.x ), reinterpret_cast< D3DXVECTOR3* >( &up.x ) );
-	ownMatixFormat.ConvertD3D(matrix);
-	toViewMatrixes[ 1 ] = Matrix44f( ownMatixFormat );
-
-	up = Vector3f( 1, 0, 0 );
-	at = myBallPosition + Vector3f( 0, 1, 0 );
-	D3DXMatrixLookAtLH( &matrix, reinterpret_cast< D3DXVECTOR3* >( &myBallPosition.x ), reinterpret_cast< D3DXVECTOR3* >( &at.x ), reinterpret_cast< D3DXVECTOR3* >( &up.x ) );
-	ownMatixFormat.ConvertD3D(matrix);
-	toViewMatrixes[ 2 ] = Matrix44f( ownMatixFormat );
-
-	up = Vector3f( -1, 0, 0 );
-	at = myBallPosition + Vector3f( 0, -1, 0 );
-	D3DXMatrixLookAtLH( &matrix, reinterpret_cast< D3DXVECTOR3* >( &myBallPosition.x ), reinterpret_cast< D3DXVECTOR3* >( &at.x ), reinterpret_cast< D3DXVECTOR3* >( &up.x ) );
-	ownMatixFormat.ConvertD3D(matrix);
-	toViewMatrixes[ 3 ] = Matrix44f( ownMatixFormat );
-
-	up = Vector3f( 0, 1, 0 );
-	at = myBallPosition + Vector3f( 0, 0, 1 );
-	D3DXMatrixLookAtLH( &matrix, reinterpret_cast< D3DXVECTOR3* >( &myBallPosition.x ), reinterpret_cast< D3DXVECTOR3* >( &at.x ), reinterpret_cast< D3DXVECTOR3* >( &up.x ) );
-	ownMatixFormat.ConvertD3D(matrix);
-	toViewMatrixes[ 4 ] = Matrix44f( ownMatixFormat );
-
-	at = myBallPosition + Vector3f( 0, 0, -1 );
-	D3DXMatrixLookAtLH( &matrix, reinterpret_cast< D3DXVECTOR3* >( &myBallPosition.x ), reinterpret_cast< D3DXVECTOR3* >( &at.x ), reinterpret_cast< D3DXVECTOR3* >( &up.x ) );
-	ownMatixFormat.ConvertD3D(matrix);
-	toViewMatrixes[ 5 ] = Matrix44f( ownMatixFormat );
-	//myToView = toViewMatrixes[ 5 ];
-
-	Engine::GetInstance()->GetRenderer().RenderToCube( toViewMatrixes );
-	
+	Engine::GetInstance()->GetRenderer().RenderToCube( myBallPosition, anAmbientProbeIndex );
 }
 
 void Application::InitModels()
 {
 	ColladaMeshFactory factory;
 
-	myGroundModel = factory.CreateModel("Plane_Checker.dae");
-	bool success = myGroundModel->InitBuffers();
-	assert( (success == true) && "Could not initiate the model!");
-
-	myBallModel = factory.CreateModel("Sphere.dae");
-	success = myGroundModel->InitBuffers();
-	assert( (success == true) && "Could not initiate the model!");
-
-	myLevelModel = factory.CreateModel("model.dae");
-	success = myGroundModel->InitBuffers();
-	assert( (success == true) && "Could not initiate the model!");
-}
-
-
-void Application::InitCubeRoomMap()
-{
-	const float distance = 33.3333f;
-
-	Instance* temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(0,0,0));
-	myInstances[0] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(0, distance ,0)); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( PI ) );
-	myInstances[1] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( 0 , distance / 2 , (distance/2))); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( PI / 2 ) );
-	myInstances[2] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( 0 , distance / 2 , -(distance/2))); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	myInstances[3] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( -(distance/2) , distance / 2 , 0 )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( (PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-
-	myBallPosition = Vector3f( 0 , 0 , 0 );
-
-	temp = new Instance(*myBallModel);
-	temp->Init();
-	temp->SetPosition( myBallPosition ); 
-	myInstances[6] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-
-	myBallPosition = Vector3f( 1 , 1 , 1 );
-
-	temp = new Instance(*myBallModel);
-	temp->Init();
-	temp->SetPosition( myBallPosition ); 
-	myInstances[6] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-
-	myBallPosition = Vector3f( -1 , 1 , -1 );
-
-	temp = new Instance(*myBallModel);
-	temp->Init();
-	temp->SetPosition( myBallPosition ); 
-	myInstances[6] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-
-	//Light* tempLight = new Light(Light::DIRECTIONAL_LIGHT_TYPE);
-	//tempLight->SetLightDir( Vector3f(1.0f, 0.0f, 0.0f) );
-	//tempLight->SetLightColor(Vector4f(0.0f, 0.0f, 1.0f, 1.0f) );
-	//myLights.Insert(0, tempLight);
-	//Engine::GetInstance()->GetScene().AddLight(tempLight);
-
-	//Light* tempPointLight = new Light(Light::POINT_LIGHT_TYPE);
-	//tempPointLight->SetPosition(Vector3f(0.0f, 5.0f, 5.0f));
-	//tempPointLight->SetLightColor(Vector4f(0.0f, 1.0f, 1.0f, 1.0f));
-	//tempPointLight->SetMaxDistance(25.0f);
-	//myLights.Insert(1, tempPointLight);
-	//Engine::GetInstance()->GetScene().AddLight(tempPointLight);
-
-	//Light* tempPointLight2 = new Light(Light::POINT_LIGHT_TYPE);
-	//tempPointLight2->SetPosition(Vector3f(5.0f, 28.0f, -5.0f));
-	//tempPointLight2->SetLightColor(Vector4f(1.0f, 0.0f, 1.0f, 1.0f));
-	//tempPointLight2->SetMaxDistance(25.0f);
-	//myLights.Insert(2, tempPointLight2);
-	//Engine::GetInstance()->GetScene().AddLight(tempPointLight2);
-
-// 	Light* tempSpotLight = new Light(Light::SPOT_LIGHT_TYPE);
-// 	tempSpotLight->SetPosition(Vector3f(25.0f, 17.0f, 0.0f));
-// 	tempSpotLight->SetLightColor(Vector4f(0.0f, 0.0f, 1.0f, 1.0f));
-// 	tempSpotLight->SetMaxDistance(100.0f);
-// 	tempSpotLight->SetLightDir(Vector3f(-1.0f, 0.0f, 0.0f));
-// 	tempSpotLight->SetInnerFallofAngle(0.8f);
-// 	tempSpotLight->SetOuterFallofAngle(0.8f);
-// 	myLights.Insert(3, tempSpotLight);
-// 	Engine::GetInstance()->GetScene().AddLight(tempSpotLight);
-
-	const float X = 0.0f;
-	const float Y = 10.0f;
-	const float Z = 0.0f;
-	Vector4f lightColor(0.0f, 0.0f , 1.0f, 1.0f);
-	//lightColor = lightColor.Normalize();
-
-	Light* spotLight = new Light(Light::SPOT_LIGHT_TYPE);
-	spotLight->SetPosition(Vector3f(X, Y, Z));
-	spotLight->SetLightColor(lightColor);
-	spotLight->SetMaxDistance(200.0f);
-	spotLight->SetLightDir(Vector3f(0.01f, -1.0f, 0.01f).Normalize());
-	spotLight->SetInnerFallofAngle(0.3f);
-	spotLight->SetOuterFallofAngle(0.6f);
-	myLights.Insert(1, spotLight);
-	Engine::GetInstance()->GetScene().AddLight(spotLight);
-
-	myCamera.SetPosition(Vector3f(33.3f, 16.7f, 0.0f));
-	myCamera.Rotate(Matrix33f::CreateRotateAroundY(1.57f));
-}
-
-void Application::InitPlaneWithBallsMap()
-{
-	//FLOOR GENERATION
-	const int NumberOfFloorsSquared = 3;
-	int indexCount = 0;
-	for(int index = 0; index < NumberOfFloorsSquared; index++)
+	for(int index = 0; index < 1; index++)
 	{
-		for(int index2 = 0; index2 < NumberOfFloorsSquared; index2++)
-		{
-			const float X = 33.3333f * (-1.0f + static_cast<float>(index));
-			const float Z = 33.3333f * static_cast<float>(index2);
-			
-			Instance* floorInstance = new Instance(*myGroundModel);
-			floorInstance->Init();
-			floorInstance->SetPosition(Vector3f(X, 0, Z));
-			myInstances[indexCount] = floorInstance;
-			Engine::GetInstance()->GetScene().AddInstance(floorInstance);
-
-			indexCount++;
-		}
+		myGroundModels[index] = factory.CreateModel("Plane_Checker.dae");
+		bool success = myGroundModels[index]->InitBuffers();
+		assert( (success == true) && "Could not initiate the model!");
 	}
 
-	//BALL GENERATION
-	const int NumberOfBalls = 100;
-	for(int index = 0; index < NumberOfBalls; index++)
+	for(int index = 0; index < 1; index++)
 	{
-		const float X = static_cast<float>(rand() % 100 - 50);
-		const float Y = static_cast<float>(rand() % 10 + 1);
-		const float Z = static_cast<float>(rand() % 99 - 17);
-			
-		Instance *ballInstance = new Instance(*myBallModel);
-		ballInstance->Init();
-		ballInstance->SetPosition(Vector3f(X, Y, Z)); 
-		myInstances[(NumberOfFloorsSquared * NumberOfFloorsSquared) + index] = ballInstance;
-		Engine::GetInstance()->GetScene().AddInstance(ballInstance);
+		myBallModels[index] = factory.CreateModel("Sphere.dae");
+		bool success = myGroundModels[index]->InitBuffers();
+		assert( (success == true) && "Could not initiate the model!");
 	}
-
-	//POINT LIGHT GENERATION
-	const int LightsOfEachType = 10;
-	for(int index = 0; index < LightsOfEachType; index++)
-	{
-		const float X = static_cast<float>(rand() % 100 - 50);
-		const float Y = static_cast<float>(rand() % 20 + 1);
-		const float Z = static_cast<float>(rand() % 99 - 17);
-		Vector4f lightColor(static_cast<float>(rand() % 500) / 660.0f + 0.25f, static_cast<float>(rand() % 500) / 660.0f + 0.25f, static_cast<float>(rand() % 500) / 660.0f + 0.25f, 1.0f);
-
-		Light* pointLight = new Light(Light::POINT_LIGHT_TYPE);
-		pointLight->SetPosition(Vector3f(X, Y, Z));
-		pointLight->SetLightColor(lightColor);
-		pointLight->SetMaxDistance(10.0f);
-		myLights.Insert(index, pointLight);
-		Engine::GetInstance()->GetScene().AddLight(pointLight);
-	}
-
-	//SPOT LIGHT GENERATION
-	for(int index = 0; index < LightsOfEachType; index++)
-	{
-		const float X = static_cast<float>(rand() % 100 - 50);
-		const float Y = static_cast<float>(rand() % 40 + 5);
-		const float Z = static_cast<float>(rand() % 99 - 17);
-		Vector4f lightColor(static_cast<float>(rand() % 500) / 660.0f + 0.25f, static_cast<float>(rand() % 500) / 660.0f + 0.25f, static_cast<float>(rand() % 500) / 660.0f + 0.25f, 1.0f);
-		lightColor = lightColor.Normalize();
-
-		Light* spotLight = new Light(Light::SPOT_LIGHT_TYPE);
-		spotLight->SetPosition(Vector3f(X, Y, Z));
-		spotLight->SetLightColor(lightColor);
-		spotLight->SetMaxDistance(200.0f);
-		spotLight->SetLightDir(Vector3f(0.0f, -1.0f, 0.1f).Normalize());
-		spotLight->SetInnerFallofAngle(0.3f);
-		spotLight->SetOuterFallofAngle(0.3f);
-		myLights.Insert(index + LightsOfEachType, spotLight);
-		Engine::GetInstance()->GetScene().AddLight(spotLight);
-	}
-
-	myCamera.SetPosition(Vector3f(0.0f, 15.0f, -30.0f));
 }
 
-void Application::InitThreeRooms()
+void Application::InitAmbientLabb()
 {
-	const float distance = 33.3333f;
+	const float distance = 33.34f;
 
-	InitRoomOne(distance);
+	myCamera.SetPosition(Vector3f(distance * 0.5f, distance, -50.0f));
+
+	//Room 1 
+	myCurrentAmbientProbeIndex = 0;
+	AddWall(Vector3f(0.0f, 0.0f, 0.0f));
+	AddWall(Vector3f(distance, 0.0f, 0.0f));
+	AddWall(Vector3f(0.0f, 0.0f, distance));
+	AddWall(Vector3f(distance, 0.0f, distance));
+
+	AddWall(Vector3f(0.0f, distance * 2.0f, 0.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+	AddWall(Vector3f(distance, distance * 2.0f, 0.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+	AddWall(Vector3f(0.0f, distance * 2.0f, distance), Matrix33f::CreateRotateAroundZ(3.14f));
+	AddWall(Vector3f(distance, distance * 2.0f, distance), Matrix33f::CreateRotateAroundZ(3.14f));
+
+	AddWall(Vector3f(-distance * 0.5f, distance * 0.5f, 0.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(-distance * 0.5f, distance * 0.5f, distance), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(distance * 1.5f, distance * 0.5f, 0.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance * 1.5f, distance * 0.5f, distance), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance, distance * 0.5f, distance * 1.5f), Matrix33f::CreateRotateAroundX(1.57f));
+	AddWall(Vector3f(0.0f, distance * 0.5f, -distance * 0.5f), Matrix33f::CreateRotateAroundX(-1.57f));
+	AddWall(Vector3f(distance, distance * 0.5f, -distance * 0.5f), Matrix33f::CreateRotateAroundX(-1.57f));
+
+	AddWall(Vector3f(-distance * 0.5f, distance * 1.5f, 0.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(-distance * 0.5f, distance * 1.5f, distance), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(distance * 1.5f, distance * 1.5f, 0.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance * 1.5f, distance * 1.5f, distance), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance, distance * 1.5f, distance * 1.5f), Matrix33f::CreateRotateAroundX(1.57f));
+	AddWall(Vector3f(0.0f, distance * 1.5f, -distance * 0.5f), Matrix33f::CreateRotateAroundX(-1.57f));
+	AddWall(Vector3f(distance, distance * 1.5f, -distance * 0.5f), Matrix33f::CreateRotateAroundX(-1.57f));
+
+	const float halfWallSize = distance / 2.0f;
+	AddBallInstance(Vector3f(distance, distance, halfWallSize - 3.0f));
+	AddBallInstance(Vector3f(distance, distance + 1.5f, halfWallSize));
+	AddBallInstance(Vector3f(distance, distance - 1.5f, halfWallSize));
+	AddBallInstance(Vector3f(distance, distance, halfWallSize + 3.0f));
 
 
-	const float X = 0.0f;
-	const float Y = 10.0f;
-	const float Z = 0.0f;
-	Vector4f lightColor(1.0f, 0.0f , 0.0f, 1.0f);
-	//lightColor = lightColor.Normalize();
+	//Corridoor 1
+	myCurrentAmbientProbeIndex = 1;
+	AddWall(Vector3f(0.0f, 0.0f, distance * 2.0f));
+	AddWall(Vector3f(0.0f, 0.0f, distance * 3.0f));
 
-	Light* spotLight = new Light(Light::SPOT_LIGHT_TYPE);
-	spotLight->SetPosition(Vector3f(X, Y, Z));
-	spotLight->SetLightColor(lightColor);
-	spotLight->SetMaxDistance(200.0f);
-	spotLight->SetLightDir(Vector3f(0.3f, 0.01f, 1.0f).Normalize());
-	spotLight->SetInnerFallofAngle(0.3f);
-	spotLight->SetOuterFallofAngle(0.6f);
-	spotLight->LoadProjectiveTexture("blinds.dds");
-	myLights.Insert(0, spotLight);
-	//myRedLight = spotLight;
-	Engine::GetInstance()->GetScene().AddLight(spotLight);
+	AddWall(Vector3f(0.0f, distance * 2.0f, distance * 2.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+	AddWall(Vector3f(0.0f, distance * 2.0f, distance * 3.0f), Matrix33f::CreateRotateAroundZ(3.14f));
 
-	Light* point = new Light(Light::POINT_LIGHT_TYPE);
-	point->SetPosition(Vector3f(X, Y, Z));
-	point->SetLightColor(Vector4f( 0.0f, 1.0f, 0.0f, 1.0f));
-	point->SetMaxDistance(2000.0f);
-	point->LoadProjectiveTexture("cubemap.dds");
-	myLights.Insert(2, point);
-	//myRedLight = spotLight;
-	Engine::GetInstance()->GetScene().AddLight(point);
+	AddWall(Vector3f(-distance * 0.5f, distance * 0.5f, distance * 2.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(-distance * 0.5f, distance * 0.5f, distance * 3.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(distance * 0.5f, distance * 0.5f, distance * 2.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance * 0.5f, distance * 0.5f, distance * 3.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
 
-	myCamera.SetPosition(Vector3f(33.3f, 16.7f, 0.0f));
-	myCamera.Rotate(Matrix33f::CreateRotateAroundY(1.57f));
+	AddWall(Vector3f(-distance * 0.5f, distance * 1.5f, distance * 2.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(-distance * 0.5f, distance * 1.5f, distance * 3.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(distance * 0.5f, distance * 1.5f, distance * 2.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance * 0.5f, distance * 1.5f, distance * 3.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+
+	////Room 2
+	myCurrentAmbientProbeIndex = 2;
+	AddWall(Vector3f(0.0f, 0.0f, distance * 4.0f));
+	AddWall(Vector3f(distance, 0.0f, distance * 4.0f));
+	AddWall(Vector3f(0.0f, 0.0f, distance * 5.0f));
+	AddWall(Vector3f(distance, 0.0f, distance * 5.0f));
+
+	AddWall(Vector3f(0.0f, distance * 2.0f, distance * 4.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+	AddWall(Vector3f(distance, distance * 2.0f, distance * 4.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+	AddWall(Vector3f(0.0f, distance * 2.0f, distance * 5.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+	AddWall(Vector3f(distance, distance * 2.0f, distance * 5.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+
+	AddWall(Vector3f(-distance * 0.5f, distance * 0.5f, distance * 4.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(-distance * 0.5f, distance * 0.5f, distance * 5.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(distance * 1.5f, distance * 0.5f, distance * 4.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance * 1.5f, distance * 0.5f, distance * 5.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance, distance * 0.5f, distance * 5.5f), Matrix33f::CreateRotateAroundX(1.57f));
+	AddWall(Vector3f(distance, distance * 0.5f, distance * 3.5f), Matrix33f::CreateRotateAroundX(-1.57f));
+
+	AddWall(Vector3f(-distance * 0.5f, distance * 1.5f, distance * 4.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(-distance * 0.5f, distance * 1.5f, distance * 5.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(distance * 1.5f, distance * 1.5f, distance * 4.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance * 1.5f, distance * 1.5f, distance * 5.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance, distance * 1.5f, distance * 5.5f), Matrix33f::CreateRotateAroundX(1.57f));
+	AddWall(Vector3f(distance, distance * 1.5f, distance * 3.5f), Matrix33f::CreateRotateAroundX(-1.57f));
+
+	AddBallInstance(Vector3f(halfWallSize, halfWallSize * 0.35f, distance * 4.5f));
+
+	//Corridoor 2
+	myCurrentAmbientProbeIndex = 3;
+	AddWall(Vector3f(0.0f, 0.0f, distance * 6.0f));
+	AddWall(Vector3f(0.0f, 0.0f, distance * 7.0f));
+
+	AddWall(Vector3f(0.0f, distance * 2.0f, distance * 6.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+	AddWall(Vector3f(0.0f, distance * 2.0f, distance * 7.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+
+	AddWall(Vector3f(-distance * 0.5f, distance * 0.5f, distance * 6.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(-distance * 0.5f, distance * 0.5f, distance * 7.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(distance * 0.5f, distance * 0.5f, distance * 6.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance * 0.5f, distance * 0.5f, distance * 7.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+
+	AddWall(Vector3f(-distance * 0.5f, distance * 1.5f, distance * 6.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(-distance * 0.5f, distance * 1.5f, distance * 7.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(distance * 0.5f, distance * 1.5f, distance * 6.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance * 0.5f, distance * 1.5f, distance * 7.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+
+	//Room 3
+	myCurrentAmbientProbeIndex = 4;
+	AddWall(Vector3f(0.0f, 0.0f, distance * 8.0f));
+	AddWall(Vector3f(distance, 0.0f, distance * 8.0f));
+	AddWall(Vector3f(0.0f, 0.0f, distance * 9.0f));
+	AddWall(Vector3f(distance, 0.0f, distance * 9.0f));
+
+	AddWall(Vector3f(0.0f, distance * 2.0f, distance * 8.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+	AddWall(Vector3f(distance, distance * 2.0f, distance * 8.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+	AddWall(Vector3f(0.0f, distance * 2.0f, distance * 9.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+	AddWall(Vector3f(distance, distance * 2.0f, distance * 9.0f), Matrix33f::CreateRotateAroundZ(3.14f));
+
+	AddWall(Vector3f(-distance * 0.5f, distance * 0.5f, distance * 8.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(-distance * 0.5f, distance * 0.5f, distance * 9.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(distance * 1.5f, distance * 0.5f, distance * 8.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance * 1.5f, distance * 0.5f, distance * 9.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance, distance * 0.5f, distance * 9.5f), Matrix33f::CreateRotateAroundX(1.57f));
+	AddWall(Vector3f(0.0f, distance * 0.5f, distance * 9.5f), Matrix33f::CreateRotateAroundX(1.57f));
+	AddWall(Vector3f(distance, distance * 0.5f, distance * 7.5f), Matrix33f::CreateRotateAroundX(-1.57f));
+
+	AddWall(Vector3f(-distance * 0.5f, distance * 1.5f, distance * 8.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(-distance * 0.5f, distance * 1.5f, distance * 9.0f), Matrix33f::CreateRotateAroundZ(1.57f));
+	AddWall(Vector3f(distance * 1.5f, distance * 1.5f, distance * 8.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance * 1.5f, distance * 1.5f, distance * 9.0f), Matrix33f::CreateRotateAroundZ(-1.57f));
+	AddWall(Vector3f(distance, distance * 1.5f, distance * 9.5f), Matrix33f::CreateRotateAroundX(1.57f));
+	AddWall(Vector3f(0.0f, distance * 1.5f, distance * 9.5f), Matrix33f::CreateRotateAroundX(1.57f));
+	AddWall(Vector3f(distance, distance * 1.5f, distance * 7.5f), Matrix33f::CreateRotateAroundX(-1.57f));
+
+	AddBallInstance(Vector3f(4.5f, halfWallSize * 0.25f, distance * 9.0f + 2.5f));
+	AddBallInstance(Vector3f(0.0f, halfWallSize * 0.25f, distance * 9.0f));
+	AddBallInstance(Vector3f(-2.5f, halfWallSize * 0.25f, distance * 9.0f - 4.5f));
+
+	Light* dirLight = new Light(Light::DIRECTIONAL_LIGHT_TYPE);
+	dirLight->SetLightColor(Vector4f(0.15f, 0.15f, 0.15f, 1.0f));
+	dirLight->SetLightDir(Vector3f(0.5f, 1.0f, 0.1f));
+	//Engine::GetInstance()->GetScene().AddLight(dirLight);
+
+	Light* spotLight1 = new Light(Light::SPOT_LIGHT_TYPE);
+	//spotLight1->SetPosition(Vector3f(halfWallSize, halfWallSize, halfWallSize));
+	spotLight1->SetPosition(Vector3f(halfWallSize, halfWallSize * 2.0f, halfWallSize));
+	spotLight1->SetLightColor(Vector4f(0.0f, 1.0f, 0.0f, 1.0f));
+	spotLight1->SetMaxDistance(50.0f);
+	spotLight1->SetInnerFallofAngle(0.625f);
+	spotLight1->SetOuterFallofAngle(0.65f);
+	//spotLight1->SetLightDir(Vector3f(1.0f, 0.0f, 0.0f));
+	spotLight1->SetLightDir(Vector3f(1.0f, 0.0f, 0.0f));
+	mySpotLights.Add(spotLight1);
+	Engine::GetInstance()->GetScene().AddLight(spotLight1);
+
+	Light* spotLightRoom2 = new Light(Light::SPOT_LIGHT_TYPE);
+	spotLightRoom2->SetPosition(Vector3f(halfWallSize, halfWallSize, distance * 4.5f));
+	spotLightRoom2->SetLightColor(Vector4f(0.0f, 0.0f, 1.0f, 1.0f));
+	spotLightRoom2->SetMaxDistance(50.0f);
+	spotLightRoom2->SetInnerFallofAngle(0.95f);
+	spotLightRoom2->SetOuterFallofAngle(0.975f);
+	spotLightRoom2->SetLightDir(Vector3f(0.0001f, -1.0f, 0.0f));
+	mySpotLights.Add(spotLightRoom2);
+	Engine::GetInstance()->GetScene().AddLight(spotLightRoom2);
+
+	Light* spotLightRoom3 = new Light(Light::SPOT_LIGHT_TYPE);
+	spotLightRoom3->SetPosition(Vector3f(halfWallSize, halfWallSize, distance * 8.5f));
+	spotLightRoom3->SetLightColor(Vector4f(1.0f, 0.0f, 0.0f, 1.0f));
+	spotLightRoom3->SetMaxDistance(50.0f);
+	spotLightRoom3->SetInnerFallofAngle(0.45f);
+	spotLightRoom3->SetOuterFallofAngle(0.475f);
+	spotLightRoom3->SetLightDir(Vector3f(-1.0f, -0.5f, 1.0f));
+	mySpotLights.Add(spotLightRoom3);
+	Engine::GetInstance()->GetScene().AddLight(spotLightRoom3);
 }
 
-void Application::InitRoomOne( const float aDistance )
+void Application::AddWall(Vector3f aPosition, Matrix33f aRotation)
 {
-	//Floor
-	Instance* temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(0,0,0));
-	myInstances[0] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(0,0,-aDistance));
-	myInstances[0] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(0,0, aDistance));
-	myInstances[0] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(-aDistance,0,0));
-	myInstances[0] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(-aDistance,0,-aDistance));
-	myInstances[0] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(-aDistance,0, aDistance));
-	myInstances[0] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
+	Instance* tempWall = new Instance(*myGroundModels[0]);
+	tempWall->Init();
+	tempWall->SetPosition(aPosition);
+	tempWall->SetRotation(aRotation);
+	tempWall->myAmbientProbeIndex = myCurrentAmbientProbeIndex;
+	myInstances.Add(tempWall);
+	Engine::GetInstance()->GetScene().AddInstance(tempWall);
+}
 
-	// ceiling
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(0, 2*aDistance ,0)); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( PI ) );
-	myInstances[1] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(0, 2*aDistance ,aDistance)); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( PI ) );
-	myInstances[1] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(0, 2*aDistance ,-aDistance)); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( PI ) );
-	myInstances[1] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(-aDistance, 2*aDistance ,0)); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( PI ) );
-	myInstances[1] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(-aDistance, 2*aDistance ,aDistance)); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( PI ) );
-	myInstances[1] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f(-aDistance, 2*aDistance ,-aDistance)); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( PI ) );
-	myInstances[1] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
+void Application::AddLight()
+{
+	const float X = static_cast<float>(rand() % 100 - 50);
+	const float Y = static_cast<float>(rand() % 5 + 1);
+	const float Z = static_cast<float>(rand() % 99 - 17);
+	Vector4f lightColor(static_cast<float>(rand() % 500) / 660.0f + 0.25f, static_cast<float>(rand() % 500) / 660.0f + 0.25f, static_cast<float>(rand() % 500) / 660.0f + 0.25f, 1.0f);
 
+	Light* pointLight = new Light(Light::POINT_LIGHT_TYPE);
+	pointLight->SetPosition(Vector3f(X, Y, Z));
+	pointLight->SetLightColor(lightColor);
+	pointLight->SetMaxDistance(3.0f + static_cast<float>(rand() % 5));
+	myPointLights.Add(pointLight);
+	Engine::GetInstance()->GetScene().AddLight(pointLight);
+}
 
-	// right wall
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( 0 , aDistance / 2 , (aDistance*1.5f))); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( PI / 2 ) );
-	myInstances[2] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( -aDistance , aDistance / 2 , (aDistance*1.5f))); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( PI / 2 ) );
-	myInstances[2] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( 0 , aDistance*1.5f , (aDistance*1.5f))); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( PI / 2 ) );
-	myInstances[2] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( -aDistance , aDistance*1.5f , (aDistance*1.5f))); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( PI / 2 ) );
-	myInstances[2] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	
-	// left wall
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( 0 , aDistance / 2 , -(aDistance*1.5f))); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	myInstances[3] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( -aDistance , aDistance / 2 , -(aDistance*1.5f))); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	myInstances[3] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( 0 , aDistance*1.5f , -(aDistance*1.5f))); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	myInstances[3] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( -aDistance , aDistance*1.5f , -(aDistance*1.5f))); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	myInstances[3] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
+void Application::RemoveLight()
+{
+	if(myPointLights.Count() > 0)
+	{
+		Engine::GetInstance()->GetScene().RemoveLight(myPointLights[myPointLights.Count() - 1]);
+		myPointLights.DeleteCyclicAtIndex(myPointLights.Count() - 1);
+	}
+}
 
-	// back wall
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( -(aDistance*1.5f), aDistance / 2 , 0 )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( (PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( -(aDistance*1.5f), aDistance / 2 , -aDistance )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( (PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( -(aDistance*1.5f), aDistance / 2 , aDistance )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( (PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( -(aDistance*1.5f), aDistance * 1.5f , 0 )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( (PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( -(aDistance*1.5f), aDistance * 1.5f , -aDistance )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( (PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( -(aDistance*1.5f), aDistance * 1.5f , aDistance )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( (PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
+void Application::AddBallInstance(Vector3f aPosition)
+{
+	Instance *ballInstance = new Instance(*myBallModels[0]);
+	ballInstance->Init();
+	ballInstance->SetPosition(aPosition); 
+	ballInstance->myAmbientProbeIndex = myCurrentAmbientProbeIndex;
+	myInstances.Add(ballInstance);
+	Engine::GetInstance()->GetScene().AddInstance(ballInstance);
+}
 
-	// front wall
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( (aDistance*0.5f), aDistance / 2 , 0 )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( -(PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( (aDistance*0.5f), aDistance / 2 , -aDistance )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( -(PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( (aDistance*0.5f), aDistance / 2 , aDistance )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( -(PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( (aDistance*0.5f), aDistance * 1.5f , 0 )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( -(PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( (aDistance*0.5f), aDistance * 1.5f , -aDistance )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( -(PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-	temp = new Instance(*myGroundModel);
-	temp->Init();
-	temp->SetPosition(Vector3f( (aDistance*0.5f), aDistance * 1.5f , aDistance )); 
-	temp->PerformRotation( Matrix33f::CreateRotateAroundX( -(PI / 2 )) );
-	temp->PerformRotation( Matrix33f::CreateRotateAroundZ( -(PI / 2 )) );
-	myInstances[4] = temp;
-	Engine::GetInstance()->GetScene().AddInstance(temp);
-
-
-	//SPOTLIGHT
-	bool success = false;
-	Light* spotLight = new Light(Light::SPOT_LIGHT_TYPE);
-	spotLight->SetPosition(Vector3f(0.0f, 60.0f, 0.0f));
-	spotLight->SetLightColor(Vector4f(0.0f, 0.0f, 1.0f, 1.0f));
-	spotLight->SetMaxDistance(100.0f);
-	spotLight->SetLightDir(Vector3f(0.01f, -1.0f, 0.01f).Normalize());
-	spotLight->SetInnerFallofAngle(0.01f);
-	spotLight->SetOuterFallofAngle(0.6f);
-	success = spotLight->LoadProjectiveTexture("Fan.dds");
-	assert(success == true);
-	myLights.Insert(1, spotLight);
-	myBlueLight = spotLight;
-	Engine::GetInstance()->GetScene().AddLight(spotLight);
-
-
-// 	// Omni
-// 	Light* point = new Light(Light::POINT_LIGHT_TYPE);
-// 	point->SetPosition(Vector3f(0.0f, 60.0f, 0.0f));
-// 	point->SetLightColor(Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
-// 	point->SetMaxDistance(1000.0f);
-// 	myLights.Insert(2, point);
-// 	Engine::GetInstance()->GetScene().AddLight(spotLight);
-
-	
+void Application::RemoveBallInstance()
+{
+	if(myInstances.Count() > 9)
+	{
+		Engine::GetInstance()->GetScene().RemoveInstance(myInstances[myInstances.Count() - 1]);
+		myInstances.DeleteCyclicAtIndex(myInstances.Count() - 1);
+	}
 }

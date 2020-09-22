@@ -59,9 +59,13 @@ private:
 	ID3D10EffectTechnique* myDepthTechnique;
 	ID3D10EffectTechnique* myReconstructWorldTechnique;
 	ID3D10EffectTechnique* myDepthNormalTechnique;
+	ID3D10EffectTechnique* myDepthAlbedoTechnique;
 	ID3D10EffectTechnique* myDeferredDirectionalTechnique;
+	ID3D10EffectTechnique* myDeferredAmbientTechnique;
 	ID3D10EffectTechnique* myDeferredPointTechnique;
 	ID3D10EffectTechnique* myDeferredSpotTechnique;
+	ID3D10EffectTechnique* myDeferredPointScissoredTechnique;
+	ID3D10EffectTechnique* myDeferredSpotScissoredTechnique;
 	ID3D10EffectTechnique* myDeferredPointMeshTechnique;
 	ID3D10EffectTechnique* mySSAOTechnique;
 

@@ -106,9 +106,13 @@ bool Effect::InitEffect( const std::string &aEffectFile )
 	myDepthTechnique = myEffect->GetTechniqueByName( "Render_Depth" );
 	myReconstructWorldTechnique = myEffect->GetTechniqueByName( "Reconstruct_World" );
 	myDepthNormalTechnique = myEffect->GetTechniqueByName( "Render_DepthNormal" );
+	myDepthAlbedoTechnique = myEffect->GetTechniqueByName("Render_DepthAlbedo");
 	myDeferredDirectionalTechnique = myEffect->GetTechniqueByName( "Render_DeferredDirectional" );
+	myDeferredAmbientTechnique = myEffect->GetTechniqueByName("Render_DeferredAmbient");
 	myDeferredPointTechnique = myEffect->GetTechniqueByName( "Render_DeferredPoint" );
 	myDeferredSpotTechnique = myEffect->GetTechniqueByName( "Render_DeferredSpot" );
+	myDeferredPointScissoredTechnique = myEffect->GetTechniqueByName( "Render_DeferredPointScissored" );
+	myDeferredSpotScissoredTechnique = myEffect->GetTechniqueByName( "Render_DeferredSpotScissored" );
 	myDeferredPointMeshTechnique = myEffect->GetTechniqueByName( "Render_DeferredPointMesh" );
 	mySSAOTechnique = myEffect->GetTechniqueByName("Render_SSAO");
 
@@ -133,71 +137,60 @@ ID3D10EffectTechnique * Effect::GetTechnique( EffectTechniques::TechniqueType aT
 	switch (aTechinqueType)
 	{
 	case EffectTechniques::NORMAL	:
-		if (myNormalTechnique == NULL) assert(0);
 		return(myNormalTechnique);
 	case EffectTechniques::ADD_DIRECTIONAL	:
-		if (myAdditativeDirectionalTechnique == NULL) assert(0);
 		return(myAdditativeDirectionalTechnique);
 	case EffectTechniques::ADD_POINT	:
-		if (myAdditativePointTechnique == NULL) assert(0);
 		return(myAdditativePointTechnique);
 	case EffectTechniques::ADD_AREA	:
-		if (myAdditativeAreaTechnique == NULL) assert(0);
 		return(myAdditativeAreaTechnique);
 	case EffectTechniques::AMBIENT	:
-		if (myAmbientTechnique == NULL) assert(0);
 		return(myAmbientTechnique);
 	case EffectTechniques::SHADOW_VOLUME :
-		if (myShadowVolumeTechnique == NULL) assert(0);
 		return(myShadowVolumeTechnique);
 	case EffectTechniques::SHADOW_VOLUME_SHOW :
-		if (myShadowVolume_SHOWTechnique == NULL) assert(0);
 		return(myShadowVolume_SHOWTechnique);
 	case EffectTechniques::QUAD :
-		if (myQuadTechnique == NULL) assert(0);
 		return(myQuadTechnique);
 	case EffectTechniques::QUAD_DOWNSAMPLE :
-		if (myQuadDownsampleTechnique == NULL) assert(0);
 		return(myQuadDownsampleTechnique);
 	case EffectTechniques::QUAD_TONEMAPPING :
-		if (myQuadToneMappingTechnique == NULL) assert(0);
 		return(myQuadToneMappingTechnique);
 	case EffectTechniques::PP_MOTION_BLUR :
-		if (myPostProcessMotionBlurTechnique == NULL) assert(0);
 		return(myPostProcessMotionBlurTechnique);
 	case EffectTechniques::STREAK :
-		if (myStreakTechnique == NULL) assert(0);
 		return(myStreakTechnique);
 	case EffectTechniques::FROM_LIGHT :
-		if (myFromLightTechnique == NULL) assert(0);
 		return(myFromLightTechnique);
 	case EffectTechniques::CUBE_MAP :
-		if (myCubeMapTechnique == NULL) assert(0);
-		return(myCubeMapTechnique);
+		//return(myCubeMapTechnique);
+		return myEffect->GetTechniqueByName( "Render_CubeShadowBuffer" );
 	case EffectTechniques::DEPTH :
-		if (myDepthTechnique) assert(0);
 		return (myDepthTechnique);
 	case EffectTechniques::RECONSTRUCT_WORLD :
-		if (myReconstructWorldTechnique == NULL) assert(0);
 		return (myReconstructWorldTechnique);
 	case EffectTechniques::DEPTH_NORMAL_ALBEDO :
-		if (myDepthNormalTechnique == NULL) assert(0);
 		return (myDepthNormalTechnique);
+	case EffectTechniques::DEPTH_ALBEDO:
+		return (myDepthAlbedoTechnique);
 	case EffectTechniques::DEFERRED_DIRECTIONAL :
-		if (myDeferredDirectionalTechnique == NULL) assert(0);
 		return (myDeferredDirectionalTechnique);
+	case EffectTechniques::DEFERRED_AMBIENT:
+		return (myDeferredAmbientTechnique);
 	case EffectTechniques::DEFERRED_POINT :
-		if (myDeferredPointTechnique == NULL) assert(0);
 		return (myDeferredPointTechnique);
 	case EffectTechniques::DEFERRED_SPOT:
-		if (myDeferredSpotTechnique == NULL) assert(0);
 		return (myDeferredSpotTechnique);
+	case EffectTechniques::DEFERRED_POINT_SCISSORED :
+		return (myDeferredPointScissoredTechnique);
+	case EffectTechniques::DEFERRED_SPOT_SCISSORED:
+		return (myDeferredSpotScissoredTechnique);
 	case EffectTechniques::DEFERRED_POINT_MESH:
-		if (myDeferredPointMeshTechnique == NULL) assert(0);
 		return (myDeferredPointMeshTechnique);
 	case EffectTechniques::SSAO:
-		if (mySSAOTechnique == NULL) assert(0);
 		return (mySSAOTechnique);
+	case EffectTechniques::DEPTH_FROM_LIGHT:
+		return (myEffect->GetTechniqueByName("Render_DepthFromLight"));
 	default:
 		assert(0);
 	};

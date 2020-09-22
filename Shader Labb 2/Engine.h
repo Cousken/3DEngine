@@ -39,13 +39,16 @@ public:
 
 	const int GetScreeenWidth() const;
 	const int GetScreenHeight() const;
+
+	void ResetScissorRect();
+	void SetScissorRect(const Vector2i& aMinCorner, const Vector2i& aMaxCorner);
 	
 	ID3D10DepthStencilView* GetDepthStencil();
 	ID3D10RenderTargetView* GetBackBuffer();
 
 	void SetTitle( const std::string aString );
 
-private:
+//private:
 	bool WindowSetup(WNDPROC aWndProc,const SetupInfo& aInfoArgument);
 
 	Engine();
@@ -53,7 +56,7 @@ private:
 	void CleanupDevice();
 	bool Init( WNDPROC aWinProc, int nCmdShow, SetupInfo aSetupInfo, HINSTANCE aHInstance );
 	bool D3DSetup();
-	HRESULT D3DDeviceSetup( UINT width, UINT height, UINT createDeviceFlags );
+	bool D3DDeviceSetup( UINT width, UINT height, UINT createDeviceFlags );
 	bool D3DViewPortSetup( UINT width, UINT height );
 	bool D3DStencilBufferSetup();
 	bool InitZBuffer();

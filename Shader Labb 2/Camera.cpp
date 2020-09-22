@@ -6,7 +6,7 @@ Camera::Camera( void )
 {
 	myPosition = Vector3f(0,0,0);
 	myNearPlane = 0.1f;
-	myFarPlane = 200.0f;
+	myFarPlane = 500.0f;
 
 	const float fovX = ( float )D3DX_PI * 0.5f;
 	const float ratio = static_cast<float>(Engine::GetInstance()->GetScreeenWidth()) /
@@ -45,6 +45,15 @@ void Camera::SetOrientation( Matrix44f& aOrientation )
 	myForwardAxle = myForwardAxle * aOrientation.Get33();
 	myRightAxle = myRightAxle * aOrientation.Get33();
 	myPosition = myPosition * aOrientation.Get33();
+	UpdateMatrixes();
+}
+
+void Camera::SetOrientationNotRetarded(Matrix44f& anOrientation)
+{
+	myRightAxle = Vector3f(anOrientation.myData[0], anOrientation.myData[1], anOrientation.myData[2]);
+	myUpAxle = Vector3f(anOrientation.myData[4], anOrientation.myData[5], anOrientation.myData[6]);
+	myForwardAxle = Vector3f(anOrientation.myData[8], anOrientation.myData[9], anOrientation.myData[10]);
+	myPosition = anOrientation.GetPosition();
 	UpdateMatrixes();
 }
 

@@ -29,12 +29,13 @@ public:
 	float GetFarPlane() const;
 
 	void SetOrientation(Matrix44f& aOrientation);
+	void SetOrientationNotRetarded(Matrix44f& anOrientation);
 	void SetRotation(Matrix33f aRotation);
 	void ApplyOrientation(Matrix44f& aOrientation);
 	void SetPosition(Vector3f& aPosition);
 	Frustum& GetFrustrum();
 
-protected:
+//protected:
 
 	void UpdateMatrixes();
 	Frustum myFrustrum;

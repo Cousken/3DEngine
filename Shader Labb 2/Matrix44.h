@@ -419,6 +419,29 @@ public:
 		return matrix;
 	}
 
+	Matrix44<Type> Matrix44<Type>::TransposeInverse()
+	{
+		Matrix33<Type> invertedMatrix;
+		invertedMatrix.myMatrix[0] = myData[0];
+		invertedMatrix.myMatrix[1] = myData[4];
+		invertedMatrix.myMatrix[2] = myData[8];
+
+		invertedMatrix.myMatrix[3] = myData[1];
+		invertedMatrix.myMatrix[4] = myData[5];
+		invertedMatrix.myMatrix[5] = myData[9];
+
+		invertedMatrix.myMatrix[6] = myData[2];
+		invertedMatrix.myMatrix[7] = myData[6];
+		invertedMatrix.myMatrix[8] = myData[10];
+
+		Vector3<Type> invPosition = (GetPosition() * -1) * invertedMatrix;
+
+		Matrix44f returnMatrix;
+		returnMatrix.SetPosition(invPosition);
+		returnMatrix = (invertedMatrix);
+		return returnMatrix;
+	}
+
 	void ConvertD3D( float* aMatrix )
 	{
 		for (int i = 0; i < 16; i++ )

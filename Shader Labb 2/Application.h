@@ -31,22 +31,27 @@ public:
 	void Render();
 
 	void LogicUpdate();
+
+	static const int myNumberOfAmbientProbes = 5;
+	static Vector3f ourAmbientProbePositions[5];
 private:
 	void UpdateFPS(const float aDeltaTime);
 	std::string ConvertToString( const int aType );
-	void RenderReflectionCubeMap();
+	void RenderReflectionCubeMap(int anAmbientProbeIndex);
 	void InitModels();
-	void InitCubeRoomMap();
-	void InitPlaneWithBallsMap();
-	void InitThreeRooms();
-
-	void InitRoomOne( const float aDistance );
+	void InitAmbientLabb();
+	void AddWall(Vector3f aPosition, Matrix33f aRotation = Matrix33f());
+	void AddLight();
+	void RemoveLight();
+	void AddBallInstance(Vector3f aPosition);
+	void RemoveBallInstance();
 
 	Model* myTinyModel;
 	Streak myStreak;
 
-	CommonUtilities::StaticArray<Instance*, 1001> myInstances;
-	CommonUtilities::StaticArray<Light*, 500> myLights;
+	CommonUtilities::GrowingArray<Instance*> myInstances;
+	CommonUtilities::GrowingArray<Light*> myPointLights;
+	CommonUtilities::GrowingArray<Light*> mySpotLights;
 	CPUParticleEmittorInstance* myParticleEmittor;
 	CPUParticleEmittorData myParticleEmittorData;
 
@@ -56,13 +61,15 @@ private:
 	SystemTimer mySystemTimer;
 	float myTime;
 	float myKeyPressCooldownTimer;
+	int myCurrentAmbientProbeIndex;
 
 	Library2D::Input* myInputHandler;
 	//TI::TimeManager myTimeManager;
 	Engine& myGfxEngine;
 
-	Model* myGroundModel;
-	Model* myBallModel;
+	Model* myGroundModels[myNumberOfAmbientProbes];
+	Model* myBallModels[myNumberOfAmbientProbes];
+	Model* myConeModel;
 	Model* myLevelModel;
 
 	Light* myBlueLight;

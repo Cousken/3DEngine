@@ -23,12 +23,15 @@ public:
 	Model(void);
 	~Model(void);
 
+	void InitSphere(int aSize, int aHeight);
+	void InitCone(int aSize);
 	bool InitBuffers();
 	bool InitIndexBuffer();
 	bool InitVertexBuffer();
 	bool InitAdjacencyIndexBuffer();
 
 	Effect* GetEffect();
+	CommonUtilities::GrowingArray<Model*>& GetChildren();
 	CommonUtilities::GrowingArray<Surface>& GetSurfaces();
 	Vector3f GetDimensions() const;
 	std::string GetFileName();
@@ -39,7 +42,7 @@ public:
 	void SetFileName(std::string aFileName);
 	
 	void AddChild(Model* aModel, TransformationNode* aOrientationNode);
-	void Render( Matrix44< float > anOrientation, CommonUtilities::StaticArray< Matrix44f, 255 >& aBoneMatrixArray, const EffectTechniques::TechniqueType aTechniqueType = EffectTechniques::NORMAL );
+	void Render( int anAmbientProbeIndex, Matrix44< float > anOrientation, CommonUtilities::StaticArray< Matrix44f, 255 >& aBoneMatrixArray, const EffectTechniques::TechniqueType aTechniqueType = EffectTechniques::NORMAL );
 	void RenderUsingEffect( Matrix44< float > anOrientation, const EffectTechniques::TechniqueType aTechniqueType = EffectTechniques::NORMAL, Effect* anEffect = NULL );
 
 	void SendLayoutAndBuffersToGPU();

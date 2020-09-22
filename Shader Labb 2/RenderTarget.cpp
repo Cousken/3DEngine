@@ -46,6 +46,38 @@ bool RenderTarget::Init( DXGI_FORMAT aTextrueFormat /*= DXGI_FORMAT_R8G8B8A8_UNO
 	return true;
 }
 
+bool RenderTarget::Init(DXGI_FORMAT aTextrueFormat, const int aWidthAndHeight)
+{
+	HRESULT hr = S_OK;
+	D3D10_TEXTURE2D_DESC tempBufferInfo;
+	tempBufferInfo.Width = aWidthAndHeight;
+	tempBufferInfo.Height = aWidthAndHeight;
+	tempBufferInfo.MipLevels = 1;
+	tempBufferInfo.ArraySize = 1;
+	tempBufferInfo.Format = aTextrueFormat;
+	tempBufferInfo.SampleDesc.Count = 1;
+	tempBufferInfo.SampleDesc.Quality = 0;
+	tempBufferInfo.Usage = D3D10_USAGE_DEFAULT;
+	tempBufferInfo.BindFlags =  D3D10_BIND_RENDER_TARGET | D3D10_BIND_SHADER_RESOURCE;
+	tempBufferInfo.CPUAccessFlags = 0;
+	tempBufferInfo.MiscFlags = 0;
+
+	hr = Engine::GetInstance()->GetDevice()->CreateTexture2D(&tempBufferInfo, NULL, &myTexture);
+	if( FAILED( hr ) )
+		assert(0);
+	hr = Engine::GetInstance()->GetDevice()->CreateRenderTargetView(myTexture, NULL, &myRenderTargetView);
+	if( FAILED( hr ) )
+		assert(0);
+	hr = Engine::GetInstance()->GetDevice()->CreateShaderResourceView(myTexture, NULL, &myShaderResourceView);
+	if( FAILED( hr ) )
+		assert(0);
+
+	if( FAILED(hr) )
+		return false;
+
+	return true;
+}
+
 void RenderTarget::Release()
 {
 	if( myRenderTargetView ) myRenderTargetView->Release();

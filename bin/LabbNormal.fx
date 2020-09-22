@@ -38,9 +38,11 @@ struct VS_OUTPUT
     float2 Tex : UVTEXMAP;
 	float2 Depth : DEPTHVALUE;
     float4 WorldPos : WORLDPOS; 
+    float4 ViewSpacePos : VIEWSPACEPOS;
     float3 Reflection : REFLECTIONVECT;
     float4 currentPos : POSITION0;
 	float4 prevPos : POSITION1;
+	float4 ObjectSpacePos : POSITION2;
 };
 
 struct PS_OUTPUT
@@ -77,6 +79,7 @@ VS_OUTPUT VS( VS_INPUT aInput )
     output.Norm = mul( aInput.Norm, World );
     
 	currentPos = mul( currentPos, View );
+	output.ViewSpacePos = currentPos;
     currentPos = mul( currentPos, Projection );
     output.Pos = currentPos;    
     
@@ -156,6 +159,7 @@ VS_OUTPUT VS_FromLight( VS_INPUT aInput )
     output.Norm = mul( aInput.Norm, World );
     output.WorldPos = output.Pos;
     output.Pos = mul( output.Pos, LightView );
+    output.ViewSpacePos = output.Pos;
     output.Pos = mul( output.Pos, LightProjection ); 
 	output.Tex.xy = float2(output.Pos.z, output.Pos.w);
     return output;
@@ -185,7 +189,7 @@ void GS_CubeMap( triangle VS_OutputCube input[3], inout TriangleStream< GS_Outpu
         output.RTIndex = face;
         for( int vertex = 0; vertex < 3; vertex++ )
         {
-            output.Pos = mul( input[ vertex ].Pos, CubeView[ face ] );//
+            output.Pos = mul( input[ vertex ].Pos, CubeView[ face ] );
             output.Pos = mul( output.Pos, Projection );
             output.Tex = input[ vertex ].Tex;
 			
@@ -215,121 +219,8 @@ PS_OUTPUT PS_CubeMap( VS_OutputCube someInput ) : SV_TARGET
 
 PS_OUTPUT PS( VS_OUTPUT input ) : SV_Target
 {
-//	PS_OUTPUT output = (PS_OUTPUT)0;
-//	
-//	float4  finalColor=0.0;
-//	float1 ambient = 0.1;
-//	
-//	finalColor += ambient;
-//
-//	for(int i=0; i<NumDirectionalLights; i++)
-//	{
-//		float3 halfVector = normalize( normalize(CameraPosition - (-input.WorldPos)) + (DirectionalLightDir[i]) );
-//		
-//		finalColor += DirectionalLightCol[i] * saturate( dot( (float3)DirectionalLightDir[i],input.Norm));
-//		float specular = DirectionalLightCol[i] * pow(saturate(dot(halfVector, input.Norm)), 16);
-//		finalColor += specular;
-//	}
-//
-//	for(int i=0; i<NumPointLights; i++)
-//	{
-//		float3 vectorToLight = PointLightPos[i] - input.WorldPos;
-//		float distance = length ( vectorToLight );
-//		float attenuation = max ( 0 , ( 1 - ( distance / PointLightMaxDist[i] ) ) );
-//		finalColor += PointLightCol[i] * saturate ( dot ( normalize ( vectorToLight ), input.Norm ) ) * attenuation;
-//
-//		float3 pointLightDir = normalize ( PointLightPos[i] - input.WorldPos );
-//		float3 halfVector = normalize( normalize(CameraPosition - (-input.WorldPos)) + (pointLightDir) );
-//		float specular = PointLightCol[i] * pow(saturate(dot(halfVector, input.Norm)), 16);
-//		finalColor += specular * attenuation;
-//	}
-//
-//	for(int spotLightI=0; spotLightI<NumSpotLights; spotLightI++)
-//	{
-//		float3 vectorToLight = SpotLightPos[spotLightI] - input.WorldPos;
-//		float distance = length ( vectorToLight );
-//		float attenuation = max ( 0 , ( 1 - ( distance / SpotLightMaxDist[spotLightI] ) ) );
-//		//float angleFalloff = smoothstep ( SpotLightInnerFalloff[spotLightI], SpotLightOuterFalloff[spotLightI], dot ( normalize (-vectorToLight), SpotLightDir[spotLightI] ) );
-//		float angleFalloff = smoothstep ( cos( 1.0f ) , cos(1.5f), dot ( normalize (-vectorToLight), SpotLightDir[i] ) );
-//		finalColor += SpotLightCol[i] * saturate ( dot ( normalize ( vectorToLight ), input.Norm ) ) * attenuation * angleFalloff;			
-//
-//		float3 halfVector = normalize( normalize(CameraPosition - (-input.WorldPos)) + (float3)SpotLightDir[i]);
-//		float specular = SpotLightCol[i] * pow(saturate(dot(halfVector, input.Norm)), 16);
-//		finalColor += specular * attenuation;
-//	}
-//
-//    float4 diffuse = DiffuseMap.Sample( samLinear, input.Tex ) * finalColor;
-//	
-//// 	// Now, consult the ShadowMap to see if we're in shadow
-//// 	float4 lightingPosition = mul(input.WorldPos, LightView);// Get our position on the shadow map
-//// 	lightingPosition = mul(lightingPosition, LightProjection);
-//// 
-//// 	// Get the shadow map depth value for this pixel   
-//// 	float2 ShadowTexC = 0.5 * lightingPosition.xy / lightingPosition.w + float2( 0.5, 0.5 );
-//// 	ShadowTexC.y = 1.0f - ShadowTexC.y;
-//// // 
-////  	float shadowdepth = PrimaryShaderResourceView.Sample(samPointClamp, ShadowTexC).x;    
-//// // 
-//// // 	// Check our value against the depth value
-////  	float ourdepth = 1 - (lightingPosition.z / lightingPosition.w);
-//// 
-//// 	if(shadowdepth - 0.003f > ourdepth)
-//// 	{	
-//// 		diffuse = float4(0.0f, 1.0f, 0.0f, 1.0f);
-//// 	}
-//
-//	 // Find the position of this pixel in light space
-//    float4 lightingPosition = mul(input.WorldPos, LightView);
-//	lightingPosition = mul(lightingPosition, LightProjection);
-//    
-//    // Find the position in the shadow map for this pixel
-//    float2 ShadowTexCoord = lightingPosition.xy / 
-//                            lightingPosition.w;
-//	ShadowTexCoord=ShadowTexCoord*0.5  + float2( 0.5, 0.5 );
-//    ShadowTexCoord.y = 1.0f - ShadowTexCoord.y;
-//
-//    // Get the current depth stored in the shadow map
-//	// float shadowdepth = PrimaryShaderResourceView.Sample(samPointClamp, ShadowTexCoord);    
-//    
-//	//Sample nearest 2x2 quad
-//	
-//	//float4 shadowMapVals = float4(0,0,0,0);
-//	float ourdepth = (lightingPosition.z / lightingPosition.w) - 0.001f;
-//	
-//	float3 nvidiaInput = float3 ( ShadowTexCoord.x, ShadowTexCoord.y, ourdepth  );
-//	float percentInLight = PCSS(PrimaryShaderResourceView, nvidiaInput);
-//
-//// 	for( int index = 0; index < 16; index+=4)
-//// 	{
-//// // 		shadowMapVals.r = PrimaryShaderResourceView.Sample(samPointClamp, ShadowTexCoord + (poissonDisk[0+i].xy * g_vFullTexelOffset.xy) );
-//// // 		shadowMapVals.g = PrimaryShaderResourceView.Sample(samPointClamp, ShadowTexCoord + (poissonDisk[1+i].xy * g_vFullTexelOffset.xy) );
-//// // 		shadowMapVals.b = PrimaryShaderResourceView.Sample(samPointClamp, ShadowTexCoord + (poissonDisk[2+i].xy * g_vFullTexelOffset.xy) );
-//// // 		shadowMapVals.a = PrimaryShaderResourceView.Sample(samPointClamp, ShadowTexCoord + (poissonDisk[3+i].xy * g_vFullTexelOffset.xy) );		
-////  		
-//// 		float2 textureCoordinate = (ShadowTexCoord + (poissonDisk[0+index].xy * g_vFullTexelOffset.xy));
-//// 		float3 nvidiaInput = float3 ( textureCoordinate.x, textureCoordinate.y, ourdepth );
-//// 		shadowMapVals.r = PCSS(	PrimaryShaderResourceView, nvidiaInput );
-//// 
-//// 		textureCoordinate = (ShadowTexCoord + (poissonDisk[0+index].xy * g_vFullTexelOffset.xy));
-//// 		nvidiaInput = float3 ( textureCoordinate.x, textureCoordinate.y, ourdepth );
-//// 		shadowMapVals.g = PCSS(	PrimaryShaderResourceView, nvidiaInput );
-//// 
-//// 		textureCoordinate = (ShadowTexCoord + (poissonDisk[0+index].xy * g_vFullTexelOffset.xy));
-//// 		nvidiaInput = float3 ( textureCoordinate.x, textureCoordinate.y, ourdepth );
-//// 		shadowMapVals.b = PCSS(	PrimaryShaderResourceView, nvidiaInput );
-//// 
-//// 		textureCoordinate = (ShadowTexCoord + (poissonDisk[0+index].xy * g_vFullTexelOffset.xy));
-//// 		nvidiaInput = float3 ( textureCoordinate.x, textureCoordinate.y, ourdepth );
-//// 		shadowMapVals.a = PCSS(	PrimaryShaderResourceView, nvidiaInput );
-//// 	 	
-//// 		float4 inLight = ( ourdepth < shadowMapVals );
-//// 		percentInLight += dot(inLight, float4(1.0f/16.0f, 1.0f/16.0f, 1.0f/16.0f, 1.0f/16.0f) );
-//// 	}	
-//
-//	output.RGBColor = diffuse * percentInLight;
-//	
 	PS_OUTPUT output = (PS_OUTPUT)0;
-	output.RGBColor = DiffuseMap.Sample( samLinear, input.Tex );
+	//output.RGBColor = DiffuseMap.Sample( samLinear, input.Tex );
 
 	float4 currentPos = input.currentPos;
 	float4 previousPos = input.prevPos;
@@ -546,9 +437,11 @@ technique10 Render_Depth
 VS_OUTPUT VS_DepthNormalAlbedo( VS_INPUT input )
 {
 	 VS_OUTPUT output = (VS_OUTPUT)0;
-	 output.WorldPos = input.Pos;
+	 output.ObjectSpacePos = input.Pos;
 	 output.Pos = mul( input.Pos, World );
+	 output.WorldPos = output.Pos;
 	 output.Pos = mul( output.Pos, View );
+	 output.ViewSpacePos = output.Pos;
 	 output.Pos = mul( output.Pos, Projection );
 
 	 output.Depth = float2(output.Pos.z, output.Pos.w);
@@ -568,18 +461,74 @@ struct PS_OUTPUT2
     float4 DepthOutput      : COLOR0;   
     float4 NormalOutput		: COLOR1;
 	float4 AlbedoOutput		: COLOR2;
+	float4 AmbientOutput	: COLOR3;
+	float4 LinearDepthOutput: COLOR4;
+	//float4 ShadowOutput		: COLOR5;
 };
 
-PS_OUTPUT2 PS_RenderDepthNormal( VS_OUTPUT someInput ) : SV_TARGET
+PS_OUTPUT2 PS_RenderDepthNormalAlbedoAmbient( VS_OUTPUT someInput ) : SV_TARGET
 {
 	PS_OUTPUT2 output = (PS_OUTPUT2)0;
 
 	const float Depth = someInput.Depth.x / someInput.Depth.y;
 	output.DepthOutput = float4(Depth, Depth, Depth, 1.0f);
 	output.NormalOutput = float4(someInput.Norm.x, someInput.Norm.y, someInput.Norm.z, 1.0f);
-	output.NormalOutput = output.NormalOutput;
 	output.AlbedoOutput = DiffuseMap.Sample(samPointClamp, someInput.Tex);
+	output.AlbedoOutput.a = 1.0f;
+	output.LinearDepthOutput = float4(someInput.ViewSpacePos.z / 500.0f, 0.0f, 0.0f, 0.0f);
 
+	//AMBIENT = AMBIENTCUBEMAP MED EMISSIVE
+	const float3 EnvBoxPos = AmbientProbePosition;
+	const float3 EnvBoxMax = EnvBoxPos + float3(33.5f, 33.5f, 33.5f);
+	
+	float3 extent = (EnvBoxMax - EnvBoxPos);
+	float3 ambNormal = normalize(someInput.Norm);
+
+	float3 rbmax = (EnvBoxPos.xyz - someInput.WorldPos + extent.xyz * 1.1);
+	float3 rbmin = (EnvBoxPos.xyz - someInput.WorldPos - extent.xyz * 1.1);
+	rbmax/=ambNormal;
+	rbmin /=ambNormal;
+
+	float3 rbminmax = (ambNormal>=0.0f)?rbmax:rbmin;
+	float fa = min(min(rbminmax.x, rbminmax.y), rbminmax.z);
+	float3 posonbox = someInput.WorldPos + ambNormal*fa;
+
+	ambNormal=normalize(posonbox-EnvBoxPos.xyz);
+	float3 ambNormal2 = normalize(someInput.Norm + (((EnvBoxPos.xyz-someInput.WorldPos))/1.41f));
+
+	float4 ambient = EnviromentMap.SampleLevel( samLinear, ambNormal2, 0) * 2.85f; //1.85f;
+	
+	output.AmbientOutput = ambient;
+	
+	//REFLECTION
+	
+	float3 dir = someInput.WorldPos - CameraPosition;
+	float3 rdir = reflect(dir, someInput.Norm);	//tanNormal
+	float3 nrdir = normalize(rdir);
+	rbmax = (EnvBoxPos.xyz - someInput.WorldPos + extent.xyz);
+	rbmin = (EnvBoxPos.xyz - someInput.WorldPos - extent.xyz);
+	rbmax/=nrdir;
+	rbmin /=nrdir;
+	rbminmax = (nrdir>=0.0f)?rbmax:rbmin;
+	fa = min(min(rbminmax.x, rbminmax.y), rbminmax.z);
+	posonbox = someInput.WorldPos + nrdir*fa;
+	rdir=normalize(posonbox-EnvBoxPos.xyz);
+	float4 rgbm = ReflectionMap.SampleLevel( samLinear, rdir, (1.0 - output.AlbedoOutput.a) * 9 );//ReflectionMap
+	float4 reflection = 1;	
+	const float substance = 1.0f;
+	reflection.rgb = 6.0 * rgbm * rgbm.a;
+	float4 fresnel = 0;
+	fresnel.rgb = substance + ( 1 - substance ) * saturate(pow( ( 1 - dot(someInput.Norm, ambNormal2) ), 5 ) );
+	fresnel.a = 1;
+	ambient = ambient * saturate(1 - fresnel);
+	reflection = reflection * saturate(fresnel);
+	reflection.a = 1;
+	
+	output.AmbientOutput = (output.AmbientOutput + reflection) * output.AlbedoOutput;
+	output.AmbientOutput.a = 1;
+	
+	//output.ShadowOutput = float4(someInput.ViewSpacePos.x, output.LinearDepthOutput.x, 0.0f, 0.0f);
+	
 	return output;
 }
 
@@ -589,12 +538,43 @@ technique10 Render_DepthNormal
 	 {
 	  SetVertexShader( CompileShader( vs_4_0, VS_DepthNormalAlbedo() ) );
 	  SetGeometryShader( NULL );
-	  SetPixelShader( CompileShader( ps_4_0, PS_RenderDepthNormal() ) );
+	  SetPixelShader( CompileShader( ps_4_0, PS_RenderDepthNormalAlbedoAmbient() ) );
 	  
 	  SetBlendState( NoBlending, float4( 0.0f, 0.0f, 0.0f, 0.0f ), 0xFFFFFFFF );
 	  SetDepthStencilState( EnableDepth, 0 );
 	  SetRasterizerState( EnableCulling );
 	 }
+}
+
+struct PS_OUTPUT3
+{ 
+    float4 DepthOutput      : COLOR0;   
+	float4 AlbedoOutput		: COLOR1;
+};
+
+PS_OUTPUT3 PS_RenderDepthAlbedo( VS_OUTPUT someInput ) : SV_TARGET
+{
+	PS_OUTPUT3 output = (PS_OUTPUT3)0;
+
+	const float Depth = someInput.Depth.x / someInput.Depth.y;
+	output.DepthOutput = float4(Depth, Depth, Depth, 1.0f);
+	output.AlbedoOutput = DiffuseMap.Sample(samPointClamp, someInput.Tex);
+
+	return output;
+}
+
+technique10 Render_DepthAlbedo
+{
+	pass P0
+	{
+		SetVertexShader( CompileShader( vs_4_0, VS_DepthNormalAlbedo() ) );
+		SetGeometryShader( NULL );
+		SetPixelShader( CompileShader( ps_4_0, PS_RenderDepthAlbedo() ) );
+
+		SetBlendState( NoBlending, float4( 0.0f, 0.0f, 0.0f, 0.0f ), 0xFFFFFFFF );
+		SetDepthStencilState( EnableDepth, 0 );
+		SetRasterizerState( EnableCulling );
+	}
 }
 //RENDER DEPTH NORMAL
 
@@ -719,7 +699,49 @@ technique10 Render_DeferredPointMesh
         SetPixelShader( CompileShader( ps_4_0, PS_DeferredPointMesh() ) );
            
 		SetBlendState( SphereMeshBlending, float4( 0.0f, 0.0f, 0.0f, 0.0f ), 0xFFFFFFFF );
-		SetDepthStencilState(SphereMeshStencil, 1);
-		//SetRasterizerState( SphereMeshCulling );
+		//SetDepthStencilState(SphereMeshStencil, 1);
+		SetDepthStencilState(DisableDepth, 1);
     }
+}
+
+struct VS_DepthFromLightOutput
+{
+	float4 Pos : SV_POSITION;
+	float Depth : DEPTH;
+};
+
+VS_DepthFromLightOutput VS_DepthFromLight( VS_INPUT someInput )
+{
+	VS_DepthFromLightOutput output;
+	
+	//someInput.Pos.w = 1.0f;
+	output.Pos = mul ( someInput.Pos, World );
+	output.Pos = mul ( output.Pos, LightView );
+	output.Depth = output.Pos.z / SpotLightMaxDistance;
+	output.Pos = mul ( output.Pos, LightProjection );
+	
+	//
+	//output.Tex = someInput.Tex;
+
+	return output;
+}
+
+float4 PS_DepthFromLight(VS_DepthFromLightOutput input) : SV_TARGET
+{
+	const float depth = (input.Depth);
+	return float4(depth, depth, depth, 1.0f);
+}
+
+technique10 Render_DepthFromLight
+{
+	 pass P0
+	 {
+	  SetVertexShader( CompileShader( vs_4_0, VS_DepthFromLight() ) );
+	  SetGeometryShader( NULL );
+	  SetPixelShader( CompileShader( ps_4_0, PS_DepthFromLight() ) );
+	  
+	  SetBlendState( NoBlending, float4( 0.0f, 0.0f, 0.0f, 0.0f ), 0xFFFFFFFF );
+	  SetDepthStencilState( EnableDepth, 0 );
+	  SetRasterizerState( EnableCulling );
+	 }
 }

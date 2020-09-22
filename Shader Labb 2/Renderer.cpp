@@ -1,9 +1,14 @@
 #include "Renderer.h"
 #include "Scene.h"
 #include "Engine.h"
+#include <sstream>
+
+float locDownsampleSize = 800.0f;
 
 Renderer::Renderer(void)
 {
+	mySphereMesh					= NULL;
+	myConeMesh						= NULL;
 	myScene							= NULL;
 	myMotionBlurFlag				= true;
 	myHDRFlag						= false;
@@ -24,93 +29,300 @@ void Renderer::SetScene( Scene* aScene )
 
 void Renderer::Render()
 {
-	Engine::GetInstance()->GetEffectInput().UpdateCamera(myScene->myCamera);
 
- 	ID3D10RenderTargetView* tempRenderTargetView;	
+	ID3D10ShaderResourceView *const pSRV[8] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+	Engine::GetInstance()->GetDevice()->PSSetShaderResources(0, 8, pSRV);
 
-	//tempRenderTargetView = mySceneTexture.GetRenderTargetView();
-	//RenderScene();
+	myFullscreenHelper.ResetPostProcessingTextures();
 	RenderDepthNormalAlbedo();
-	//CopyAlbedo();
-
+	
 	const Vector2f ScreenSize(Engine::GetInstance()->GetScreeenWidth(), Engine::GetInstance()->GetScreenHeight());
  	const Vector2f Offset(0.0f, 0.0f);
-	RenderSSAO(myAmbientOcclusionMap, ScreenSize, Offset);
 
-	//RENDER DEFERRED
-	RenderDeferredDirectionalLights(&myFinalScene, ScreenSize, Offset);
-	//if(myTogglePointOrSpotLight == true)
-	{
-		RenderDeferredPointLights(&myFinalScene, ScreenSize, Offset);
+		//apply ambient
+	Engine::GetInstance()->GetEffectInput().SetPrimaryPostProcesingTexture(myAlbedoMap.GetShaderResourceView());
+	Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myAmbientMap.GetShaderResourceView());
+	myFullscreenHelper.Process(myAlbedoMap.GetShaderResourceView(), myFinalScene.GetRenderTargetView(), "RenderAmbientPass");
+
+	Engine::GetInstance()->GetEffectInput().SetPrimaryPostProcesingTexture(myDepthMap.GetShaderResourceView());
+	Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myNormalMap.GetShaderResourceView());
+	Engine::GetInstance()->GetEffectInput().SetThirdPostProcesingTexture(myAlbedoMap.GetShaderResourceView());
+	Engine::GetInstance()->GetEffectInput().GetEffectPool()->AsEffect()->GetVariableByName("LinearDepth")->AsShaderResource()->SetResource(myLinearDepthMap.GetShaderResourceView());
+
+	//RenderDeferredDirectionalLights(&myFinalScene, myDepthMap, ScreenSize, Offset);
+	//RenderDeferredPointLights(&myFinalScene, ScreenSize, Offset);
+	RenderDeferredSpotLights(&myFinalScene, myDepthMap, ScreenSize, Offset);
+
+	Engine::GetInstance()->ResetScissorRect();
+	myFullscreenHelper.DisableScissorRect();
+
+	myFullscreenHelper.Process(myFinalScene.GetShaderResourceView(), Engine::GetInstance()->GetBackBuffer(), EffectTechniques::QUAD, ScreenSize, Vector2f(0.0f, 0.0f)); 
+}
+
+void Renderer::RenderToCube( Vector3f aPosition, int aCubeMapIndex )
+{
+	myToggleAdvancedCulling = false;
+
+	float clearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+	for(int sideIndex = 0; sideIndex < 6; sideIndex++)
+	{	
+		Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientProbes[aCubeMapIndex].myReflectionCubeMapSides[sideIndex]->GetRenderTargetView(), clearColor);	
 	}
-	//else
+
+	Engine::GetInstance()->GetEffectInput().SetAmbientProbePosition(aPosition);
+	Engine::GetInstance()->GetEffectInput().SetEnviromentMap(myAmbientProbes[aCubeMapIndex].myShaderResourceView);
+	Engine::GetInstance()->GetEffectInput().SetReflectionMap(myAmbientProbes[aCubeMapIndex].myReflectionShaderResourceView);
+	
+	//Render each of the ambient probe's sides to a cross
+	RenderCross(AmbientProbe::Right, aCubeMapIndex, aPosition);
+	RenderCross(AmbientProbe::Left, aCubeMapIndex, aPosition);
+	RenderCross(AmbientProbe::Up, aCubeMapIndex, aPosition);
+	RenderCross(AmbientProbe::Bottom, aCubeMapIndex, aPosition);
+	RenderCross(AmbientProbe::Front, aCubeMapIndex, aPosition);
+	RenderCross(AmbientProbe::Back, aCubeMapIndex, aPosition);
+
+	//Copy the finalized cubemap side textures to the actual cubemap
+	myFullscreenHelper.Process(myTemporaryCubeSides[0].GetShaderResourceView(), myAmbientProbes[aCubeMapIndex].myCubeMapSides[0]->GetRenderTargetView(), "Render_Quad", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	myFullscreenHelper.Process(myTemporaryCubeSides[1].GetShaderResourceView(), myAmbientProbes[aCubeMapIndex].myCubeMapSides[1]->GetRenderTargetView(), "Render_Quad", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	myFullscreenHelper.Process(myTemporaryCubeSides[2].GetShaderResourceView(), myAmbientProbes[aCubeMapIndex].myCubeMapSides[2]->GetRenderTargetView(), "Render_Quad", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	myFullscreenHelper.Process(myTemporaryCubeSides[3].GetShaderResourceView(), myAmbientProbes[aCubeMapIndex].myCubeMapSides[3]->GetRenderTargetView(), "Render_Quad", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	myFullscreenHelper.Process(myTemporaryCubeSides[4].GetShaderResourceView(), myAmbientProbes[aCubeMapIndex].myCubeMapSides[4]->GetRenderTargetView(), "Render_Quad", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	myFullscreenHelper.Process(myTemporaryCubeSides[5].GetShaderResourceView(), myAmbientProbes[aCubeMapIndex].myCubeMapSides[5]->GetRenderTargetView(), "Render_Quad", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	
+	//Copy the finalized reflection cubemap side textures to the actual reflection cubemap
+	myFullscreenHelper.Process(myTemporaryReflectionCubeSides[0].GetShaderResourceView(), myAmbientProbes[aCubeMapIndex].myReflectionCubeMapSides[0]->GetRenderTargetView(), "Render_Quad", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	myFullscreenHelper.Process(myTemporaryReflectionCubeSides[1].GetShaderResourceView(), myAmbientProbes[aCubeMapIndex].myReflectionCubeMapSides[1]->GetRenderTargetView(), "Render_Quad", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	myFullscreenHelper.Process(myTemporaryReflectionCubeSides[2].GetShaderResourceView(), myAmbientProbes[aCubeMapIndex].myReflectionCubeMapSides[2]->GetRenderTargetView(), "Render_Quad", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	myFullscreenHelper.Process(myTemporaryReflectionCubeSides[3].GetShaderResourceView(), myAmbientProbes[aCubeMapIndex].myReflectionCubeMapSides[3]->GetRenderTargetView(), "Render_Quad", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	myFullscreenHelper.Process(myTemporaryReflectionCubeSides[4].GetShaderResourceView(), myAmbientProbes[aCubeMapIndex].myReflectionCubeMapSides[4]->GetRenderTargetView(), "Render_Quad", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	myFullscreenHelper.Process(myTemporaryReflectionCubeSides[5].GetShaderResourceView(), myAmbientProbes[aCubeMapIndex].myReflectionCubeMapSides[5]->GetRenderTargetView(), "Render_Quad", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+
+	//WriteTextureToDisk(*myAmbientProbes[aCubeMapIndex].myCubeMapSides[aCubeMapIndex], "AmbientProbeAmbientCubeMap");
+	//WriteTextureToDisk(*myAmbientProbes[aCubeMapIndex].myReflectionCubeMapSides[aCubeMapIndex], "AmbientProbeReflectionCubeMap");
+
+	Engine::GetInstance()->GetEffectInput().SetEnviromentMap(myAmbientProbes[aCubeMapIndex].myShaderResourceView);
+	Engine::GetInstance()->GetEffectInput().SetReflectionMap(myAmbientProbes[aCubeMapIndex].myReflectionShaderResourceView);
+
+	myToggleAdvancedCulling = true;
+}
+
+void Renderer::ResetStuff()
+{
+	for(int probeIndex = 0; probeIndex < Application::myNumberOfAmbientProbes; probeIndex++)
 	{
-		RenderDeferredSpotLights(&myFinalScene, ScreenSize, Offset);
-	}
-
-	if(myToggleQuadOrFullScreen == true)
-	{
-		//RENDER THE LITTLE VIEWS ON THE LEFT
-		// DEPTH
-		tempRenderTargetView = myRenderTargetTexture.GetRenderTargetView();
-		float targetWidth = Engine::GetInstance()->GetScreeenWidth()/2;
-		float targetHeight = Engine::GetInstance()->GetScreenHeight()/2;	
-		myFullscreenHelper.Process(myDepthMap.GetShaderResourceView(),
-			tempRenderTargetView, EffectTechniques::QUAD,
-			Vector2f( targetWidth, targetHeight),
-			Vector2f( 0, targetHeight * 0));
-
-		//NORMAL
-		myFullscreenHelper.Process(myNormalMap.GetShaderResourceView(),
-			tempRenderTargetView, EffectTechniques::QUAD,
-			Vector2f( targetWidth, targetHeight),
-			Vector2f( targetWidth, 0));
-
-		//ALBEDO
-		myFullscreenHelper.Process(myAlbedoMap.GetShaderResourceView(),
-			tempRenderTargetView, EffectTechniques::QUAD,
-			Vector2f( targetWidth, targetHeight),
-			Vector2f( 0, targetHeight));
-
-		//FULL SCENE
-		myFullscreenHelper.Process(myFinalScene.GetShaderResourceView(),
-			tempRenderTargetView, EffectTechniques::QUAD,
-			Vector2f( targetWidth, targetHeight),
-			Vector2f( targetWidth, targetHeight));
-
-
-		//RENDERS FINAL FULLSCREEN FRAME TEXTURE
-		//RenderFinalFrameTexture(myRenderTargetTexture, Vector2f(Engine::GetInstance()->GetScreeenWidth(), Engine::GetInstance()->GetScreenHeight()), Vector2f(0.0f, 0.0f));
-		RenderFinalFrameTexture(myRenderTargetTexture, Vector2f(Engine::GetInstance()->GetScreeenWidth(), Engine::GetInstance()->GetScreenHeight()), Vector2f(0.0f, 0.0f));
-	}
-	else
-	{
-		//FULL SCENE
-		myFullscreenHelper.Process(myFinalScene.GetShaderResourceView(),
-			myRenderTargetTexture.GetRenderTargetView(), EffectTechniques::QUAD,
-			Vector2f( Engine::GetInstance()->GetScreeenWidth(), Engine::GetInstance()->GetScreenHeight()),
-			Vector2f( 0.0f, 0.0f));
-
-		//RENDERS FINAL FULLSCREEN FRAME TEXTURE
-		RenderFinalFrameTexture(myFinalScene, Vector2f(Engine::GetInstance()->GetScreeenWidth(), Engine::GetInstance()->GetScreenHeight()), Vector2f(0.0f, 0.0f));
+		float clearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+		for(int sideIndex = 0; sideIndex < 6; sideIndex++)
+		{
+			Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientProbes[probeIndex].myCubeMapSides[sideIndex]->GetRenderTargetView(), clearColor);	
+			Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientProbes[probeIndex].myReflectionCubeMapSides[sideIndex]->GetRenderTargetView(), clearColor);	
+		}
 	}
 }
 
-void Renderer::RenderToCube( const CommonUtilities::StaticArray< Matrix44f, 6 >& someToView )
+void Renderer::RenderCross(AmbientProbe::CubeMapSideTypes aSideToRenderCrossAround, int anAmbientProbeIndex, Vector3f aPosition)
 {
-	ID3D10RenderTargetView* tempRenderTargetView;
+	//right, left, up, down, forward, backward
+	const float piValue = 3.1415926f;
+	const float halfPi = piValue / 2.0f;
 
-	float colour[4] = { 0.0f, 0.125f, 0.3f, 1.0f }; //red,green,blue,alpha
-	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myCubeMap.GetRenderTargetView(), colour );
+	Matrix44f cameraOrientation[6];
 
-	tempRenderTargetView = myCubeMap.GetRenderTargetView();
-	Engine::GetInstance()->GetDevice()->OMSetRenderTargets(1,
-		&tempRenderTargetView,
-		NULL);
+	if(aSideToRenderCrossAround == AmbientProbe::Right)
+	{
+		cameraOrientation[AmbientProbe::Right]	= Matrix44f::CreateRotateAroundY(piValue);
+		cameraOrientation[AmbientProbe::Left]	= Matrix44f::CreateRotateAroundY(0.0f);
+		cameraOrientation[AmbientProbe::Up]		= Matrix44f::CreateRotateAroundX(halfPi) * Matrix44f::CreateRotateAroundY(-halfPi);
+		cameraOrientation[AmbientProbe::Bottom] = Matrix44f::CreateRotateAroundX(-halfPi) * Matrix44f::CreateRotateAroundY(-halfPi);
+		cameraOrientation[AmbientProbe::Front]	= Matrix44f::CreateRotateAroundY(-halfPi);
+		cameraOrientation[AmbientProbe::Back]	= Matrix44f::CreateRotateAroundY(halfPi);
+	}
+	else if(aSideToRenderCrossAround == AmbientProbe::Left)
+	{
+		cameraOrientation[AmbientProbe::Right]	= Matrix44f::CreateRotateAroundY(0.0f);
+		cameraOrientation[AmbientProbe::Left]	= Matrix44f::CreateRotateAroundY(piValue);
+		cameraOrientation[AmbientProbe::Up]		= Matrix44f::CreateRotateAroundX(halfPi) * Matrix44f::CreateRotateAroundY(halfPi);
+		cameraOrientation[AmbientProbe::Bottom] = Matrix44f::CreateRotateAroundX(-halfPi) * Matrix44f::CreateRotateAroundY(halfPi);
+		cameraOrientation[AmbientProbe::Front]	= Matrix44f::CreateRotateAroundY(halfPi);
+		cameraOrientation[AmbientProbe::Back]	= Matrix44f::CreateRotateAroundY(-halfPi);
+	}
+	else if(aSideToRenderCrossAround == AmbientProbe::Up)
+	{
+		cameraOrientation[AmbientProbe::Right]	= Matrix44f::CreateRotateAroundY(-halfPi) * Matrix44f::CreateRotateAroundX(halfPi);
+		cameraOrientation[AmbientProbe::Left]	= Matrix44f::CreateRotateAroundY(halfPi) * Matrix44f::CreateRotateAroundX(halfPi);
+		cameraOrientation[AmbientProbe::Up]		= Matrix44f::CreateRotateAroundY(piValue) * Matrix44f::CreateRotateAroundZ(piValue);
+		cameraOrientation[AmbientProbe::Bottom] = Matrix44f::CreateRotateAroundX(0.0f);
+		cameraOrientation[AmbientProbe::Front]	= Matrix44f::CreateRotateAroundX(halfPi);
+		cameraOrientation[AmbientProbe::Back]	= Matrix44f::CreateRotateAroundX(-halfPi);
+	}
+	else if(aSideToRenderCrossAround == AmbientProbe::Bottom)
+	{
+		cameraOrientation[AmbientProbe::Right]	= Matrix44f::CreateRotateAroundY(-halfPi) * Matrix44f::CreateRotateAroundX(-halfPi);
+		cameraOrientation[AmbientProbe::Left]	= Matrix44f::CreateRotateAroundY(halfPi) * Matrix44f::CreateRotateAroundX(-halfPi);
+		cameraOrientation[AmbientProbe::Up]		= Matrix44f::CreateRotateAroundY(0.0f);
+		cameraOrientation[AmbientProbe::Bottom] = Matrix44f::CreateRotateAroundY(piValue) * Matrix44f::CreateRotateAroundZ(-piValue);
+		cameraOrientation[AmbientProbe::Front]	= Matrix44f::CreateRotateAroundX(-halfPi);
+		cameraOrientation[AmbientProbe::Back]	= Matrix44f::CreateRotateAroundX(halfPi);
+	}
+	else if(aSideToRenderCrossAround == AmbientProbe::Front)
+	{
+		cameraOrientation[AmbientProbe::Right]	= Matrix44f::CreateRotateAroundY(-halfPi);
+		cameraOrientation[AmbientProbe::Left]	= Matrix44f::CreateRotateAroundY(halfPi);
+		cameraOrientation[AmbientProbe::Up]		= Matrix44f::CreateRotateAroundX(halfPi);
+		cameraOrientation[AmbientProbe::Bottom] = Matrix44f::CreateRotateAroundX(-halfPi);
+		cameraOrientation[AmbientProbe::Front]	= Matrix44f::CreateRotateAroundY(0.0f);
+		cameraOrientation[AmbientProbe::Back]	= Matrix44f::CreateRotateAroundY(piValue);
+	}
+	else if(aSideToRenderCrossAround == AmbientProbe::Back)
+	{
+		cameraOrientation[AmbientProbe::Right]	= Matrix44f::CreateRotateAroundY(halfPi);
+		cameraOrientation[AmbientProbe::Left]	= Matrix44f::CreateRotateAroundY(-halfPi);
+		cameraOrientation[AmbientProbe::Up]		= Matrix44f::CreateRotateAroundX(halfPi) * Matrix44f::CreateRotateAroundY(-piValue);
+		cameraOrientation[AmbientProbe::Bottom] = Matrix44f::CreateRotateAroundX(-halfPi) * Matrix44f::CreateRotateAroundY(-piValue);
+		cameraOrientation[AmbientProbe::Front]	= Matrix44f::CreateRotateAroundY(piValue);
+		cameraOrientation[AmbientProbe::Back]	= Matrix44f::CreateRotateAroundY(0.0f);
+	}
 
-	myScene->RenderToCube( someToView );
+	//Render the cubemaps sides
+	Matrix44f oldCameraOrientation = myScene->GetCamera().GetOrientation();
+	for(int index = 0; index < 6; index++)
+	{
+		cameraOrientation[index].SetPosition(aPosition);
+		myScene->GetCamera().SetOrientationNotRetarded(cameraOrientation[index]);
 
-	Engine::GetInstance()->GetEffectInput().SetEnviromentMap( myCubeMap.GetShaderResourceView() );
+		float clearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+		Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesDepth[index]->GetRenderTargetView(), clearColor);
+		Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientProbes[anAmbientProbeIndex].myTemporaryNormalMap->GetRenderTargetView(), clearColor);
+		Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesColor[index]->GetRenderTargetView(), clearColor);
+		Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientMap.GetRenderTargetView(), clearColor);
+
+		ID3D10RenderTargetView* renderTargetViews[5] = {myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesDepth[index]->GetRenderTargetView(), myAmbientProbes[anAmbientProbeIndex].myTemporaryNormalMap->GetRenderTargetView(), myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesColor[index]->GetRenderTargetView(), myAmbientMap.GetRenderTargetView(), myLinearDepthMap.GetRenderTargetView()};
+
+		Engine::GetInstance()->GetDevice()->OMSetRenderTargets(5, renderTargetViews, NULL);
+		myScene->Render(EffectTechniques::DEPTH_NORMAL_ALBEDO);
+
+		//apply ambient
+		Engine::GetInstance()->GetEffectInput().SetPrimaryPostProcesingTexture(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesColor[index]->GetShaderResourceView());
+		Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myAmbientMap.GetShaderResourceView());
+		myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesColor[index]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myTemporaryColorMap->GetRenderTargetView(), "RenderAmbientPass");
+		myFullscreenHelper.ResetPostProcessingTextures();
+	
+		//copy
+		myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myTemporaryColorMap->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesColor[index]->GetRenderTargetView(), "Render_Quad", Vector2f(800.0f, 800.0f), Vector2f(0.0f, 0.0f));
+
+		//apply lighting
+		Engine::GetInstance()->GetEffectInput().SetPrimaryPostProcesingTexture(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesDepth[index]->GetShaderResourceView());
+		Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myAmbientProbes[anAmbientProbeIndex].myTemporaryNormalMap->GetShaderResourceView());
+		RenderDeferredSpotLights(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesColor[index], *myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesDepth[index], Vector2f(800.0f, 800.0f), Vector2f(0.0f, 0.0f), false);
+		myFullscreenHelper.ResetPostProcessingTextures();
+	}
+	myScene->GetCamera().SetOrientation(oldCameraOrientation);
+
+	float clearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+	Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround]->GetRenderTargetView(), clearColor);
+	Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientProbes[anAmbientProbeIndex].myCrossMapDepth[aSideToRenderCrossAround]->GetRenderTargetView(), clearColor);
+
+	//Render the 5 color textures to a cross
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesColor[0]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround]->GetRenderTargetView(), EffectTechniques::QUAD, Vector2f(20.0f, 20.0f), Vector2f(40.0f, 20.0f));
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesColor[1]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround]->GetRenderTargetView(), EffectTechniques::QUAD, Vector2f(20.0f, 20.0f), Vector2f(0.0f, 20.0f));
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesColor[2]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround]->GetRenderTargetView(), EffectTechniques::QUAD, Vector2f(20.0f, 20.0f), Vector2f(20.0f, 0.0f));
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesColor[3]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround]->GetRenderTargetView(), EffectTechniques::QUAD, Vector2f(20.0f, 20.0f), Vector2f(20.0f, 40.0f));
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesColor[4]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround]->GetRenderTargetView(), EffectTechniques::QUAD, Vector2f(20.0f, 20.0f), Vector2f(20.0f, 20.0f));
+
+	//Render the 5 depth textures to a cross
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesDepth[0]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapDepth[aSideToRenderCrossAround]->GetRenderTargetView(), EffectTechniques::QUAD, Vector2f(20.0f, 20.0f), Vector2f(40.0f, 20.0f));
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesDepth[1]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapDepth[aSideToRenderCrossAround]->GetRenderTargetView(), EffectTechniques::QUAD, Vector2f(20.0f, 20.0f), Vector2f(0.0f, 20.0f));
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesDepth[2]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapDepth[aSideToRenderCrossAround]->GetRenderTargetView(), EffectTechniques::QUAD, Vector2f(20.0f, 20.0f), Vector2f(20.0f, 0.0f));
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesDepth[3]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapDepth[aSideToRenderCrossAround]->GetRenderTargetView(), EffectTechniques::QUAD, Vector2f(20.0f, 20.0f), Vector2f(20.0f, 40.0f));
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCubeMapSidesDepth[4]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapDepth[aSideToRenderCrossAround]->GetRenderTargetView(), EffectTechniques::QUAD, Vector2f(20.0f, 20.0f), Vector2f(20.0f, 20.0f));
+	
+	//WriteTextureToDisk(*myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround], "CROSS");
+	//Blur the color cross
+	Engine::GetInstance()->GetEffectInput().SetPrimaryPostProcesingTexture(myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround]->GetShaderResourceView());
+	Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myAmbientProbes[anAmbientProbeIndex].myCrossMapDepth[aSideToRenderCrossAround]->GetShaderResourceView());
+	Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy->GetRenderTargetView(), clearColor);
+	Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy2->GetRenderTargetView(), clearColor);
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy->GetRenderTargetView(), "JaffeBlurHorizontal", Vector2f(60.0f, 60.0f));
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy2->GetRenderTargetView(), "Render_Quad", Vector2f(60.0f, 60.0f));
+	myFullscreenHelper.ResetPostProcessingTextures();
+	Engine::GetInstance()->GetEffectInput().SetPrimaryPostProcesingTexture(myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy2->GetShaderResourceView());
+	Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myAmbientProbes[anAmbientProbeIndex].myCrossMapDepth[aSideToRenderCrossAround]->GetShaderResourceView());
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy2->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy->GetRenderTargetView(), "JaffeBlurVertical", Vector2f(60.0f, 60.0f));
+	myFullscreenHelper.ResetPostProcessingTextures();
+
+	//Extract finalized blurred side texture from cross to temporary cubemap side texture
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy->GetShaderResourceView(), myTemporaryCubeSides[aSideToRenderCrossAround].GetRenderTargetView(), "JaffeCopyFromCrossCenter", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	myFullscreenHelper.ResetPostProcessingTextures();
+
+	//Blur the color cross with special reflection blur
+	Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy->GetRenderTargetView(), clearColor);
+	Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy2->GetRenderTargetView(), clearColor);
+	//myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy2->GetRenderTargetView(), "JaffeScale", Vector2f(60.0f, 60.0f));
+	Engine::GetInstance()->GetEffectInput().SetPrimaryPostProcesingTexture(myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround]->GetShaderResourceView());
+	Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myAmbientProbes[anAmbientProbeIndex].myCrossMapDepth[aSideToRenderCrossAround]->GetShaderResourceView());
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround]->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy->GetRenderTargetView(), "JaffeSpecialBlurHorizontal", Vector2f(60.0f, 60.0f));
+	myFullscreenHelper.ResetPostProcessingTextures();
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy2->GetRenderTargetView(), "Render_Quad", Vector2f(60.0f, 60.0f));
+	myFullscreenHelper.ResetPostProcessingTextures();
+	Engine::GetInstance()->GetEffectInput().SetPrimaryPostProcesingTexture(myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy2->GetShaderResourceView());
+	Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myAmbientProbes[anAmbientProbeIndex].myCrossMapDepth[aSideToRenderCrossAround]->GetShaderResourceView());
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy2->GetShaderResourceView(), myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy->GetRenderTargetView(), "JaffeSpecialBlurVertical", Vector2f(60.0f, 60.0f));
+	myFullscreenHelper.ResetPostProcessingTextures();
+
+	//Extract texture from blurred cross to temporary cubemap reflection side texture
+	myFullscreenHelper.Process(myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy->GetShaderResourceView(), myTemporaryReflectionCubeSides[aSideToRenderCrossAround].GetRenderTargetView(), "JaffeCopyFromCrossCenter", Vector2f(20.0f, 20.0f), Vector2f(0.0f, 0.0f));
+	myFullscreenHelper.ResetPostProcessingTextures();
+	
+	//const std::string sides[6] = {"Right", "Left", "Up", "Bottom", "Front", "Back"};
+	//WriteTextureToDisk(*myAmbientProbes[anAmbientProbeIndex].myCrossMapColor[aSideToRenderCrossAround], "CrossColor" + sides[aSideToRenderCrossAround]);
+	//WriteTextureToDisk(*myAmbientProbes[anAmbientProbeIndex].myCrossMapDepth[aSideToRenderCrossAround], "CrossDepth" + sides[aSideToRenderCrossAround]);
+	//WriteTextureToDisk(*myAmbientProbes[anAmbientProbeIndex].myCrossMapCopy, "BlurredCross" + sides[aSideToRenderCrossAround]);
+	//WriteTextureToDisk(myTemporaryCubeSides[aSideToRenderCrossAround], "CubeMapSideFinal" + sides[aSideToRenderCrossAround]);
+	//WriteTextureToDisk(myTemporaryReflectionCubeSides[aSideToRenderCrossAround], "CubeMapReflectionSideFinal" + sides[aSideToRenderCrossAround]);
+}
+
+void Renderer::DownsampleCross(ID3D10ShaderResourceView* aCrossToDownsample)
+{
+	myFullscreenHelper.Process(aCrossToDownsample, myDownSampledCross400.GetRenderTargetView(), "JaffeDownSample", Vector2f(400.0f, 400.0f));
+	myFullscreenHelper.Process(myDownSampledCross400.GetShaderResourceView(), myDownSampledCross200.GetRenderTargetView(), "JaffeDownSample", Vector2f(200.0f, 200.0f));
+	myFullscreenHelper.Process(myDownSampledCross200.GetShaderResourceView(), myDownSampledCross100.GetRenderTargetView(), "JaffeDownSample", Vector2f(100.0f, 100.0f));
+	myFullscreenHelper.Process(myDownSampledCross100.GetShaderResourceView(), myDownSampledCross60.GetRenderTargetView(), "JaffeDownSample", Vector2f(60.0f, 60.0f));
+}
+
+void Renderer::RenderDepthOfField(RenderTarget& aRenderTarget)
+{
+	float clearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+	Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myDownsampledAlbedo.GetRenderTargetView(), clearColor);
+	Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myDownsampledAlbedo2.GetRenderTargetView(), clearColor);
+	Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAlbedoMap2.GetRenderTargetView(), clearColor);
+
+	//Compute depth data myAlbedoMap myFinalScene
+	Engine::GetInstance()->GetEffectInput().SetPrimaryPostProcesingTexture(myFinalScene.GetShaderResourceView());
+	Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myLinearDepthMap.GetShaderResourceView());
+	myFullscreenHelper.Process(myFinalScene.GetShaderResourceView(), myAlbedoMap2.GetRenderTargetView(), "ComputeBlurDepth", Vector2f(800.0f, 800.0f));
+	//WriteTextureToDisk(myAlbedoMap2, "TEMP0");
+	//WriteTextureToDisk(myLinearDepthMap, "LinearDepth");
+
+	//Downsample
+	myFullscreenHelper.Process(myFinalScene.GetShaderResourceView(), myDownsampledAlbedo.GetRenderTargetView(), "Render_Quad_Linear", Vector2f(locDownsampleSize, locDownsampleSize));
+	myFullscreenHelper.ResetPostProcessingTextures();
+	//WriteTextureToDisk(myDownsampledAlbedo, "TEMP1");
+	
+	//Blur horizontally
+	myFullscreenHelper.Process(myDownsampledAlbedo.GetShaderResourceView(), myDownsampledAlbedo2.GetRenderTargetView(), "JaffeSpecialBlurHorizontal2", Vector2f(locDownsampleSize, locDownsampleSize));
+	//WriteTextureToDisk(myDownsampledAlbedo2, "TEMP2");
+	myFullscreenHelper.ResetPostProcessingTextures();
+
+	//Blur vertically
+	myFullscreenHelper.Process(myDownsampledAlbedo2.GetShaderResourceView(), myDownsampledAlbedo.GetRenderTargetView(), "JaffeSpecialBlurVertical2", Vector2f(locDownsampleSize, locDownsampleSize));
+	myFullscreenHelper.ResetPostProcessingTextures();
+	//WriteTextureToDisk(myDownsampledAlbedo, "TEMP3");
+
+	//Perform depth of field
+	Engine::GetInstance()->GetEffectInput().SetPrimaryPostProcesingTexture(myAlbedoMap2.GetShaderResourceView());
+	Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myDownsampledAlbedo.GetShaderResourceView());
+	myFullscreenHelper.Process(myAlbedoMap2.GetShaderResourceView(), myFinalScene.GetRenderTargetView(), "RenderDepthOfField", Vector2f(800.0f, 800.0f));
+	myFullscreenHelper.ResetPostProcessingTextures();
+	//WriteTextureToDisk(myFinalScene, "TEMP4");
 }
 
 bool Renderer::Init()
@@ -125,46 +337,6 @@ bool Renderer::Init()
 		return false;
 	}
 		
-	if ( myDownsampledTexture2.Init( DXGI_FORMAT_R16G16B16A16_UNORM, 2.0f ) == false)
-	{
-		return false;
-	}
-	if ( myDownsampledTexture4.Init( DXGI_FORMAT_R16G16B16A16_UNORM, 4.0f ) == false)
-	{
-		return false;
-	}
-	if ( myDownsampledTexture8.Init( DXGI_FORMAT_R16G16B16A16_UNORM, 8.0f ) == false)
-	{
-		return false;
-	}
-	if ( myDownsampledTexture16.Init( DXGI_FORMAT_R16G16B16A16_UNORM, 16.0f ) == false)
-	{
-		return false;
-	}
-	if ( myDownsampledTexture32.Init( DXGI_FORMAT_R16G16B16A16_UNORM, 32.0f ) == false)
-	{
-		return false;
-	}
-	if ( myDownsampledTexture64.Init( DXGI_FORMAT_R16G16B16A16_UNORM, 64.0f ) == false)
-	{
-		return false;
-	}
-	if ( myDownsampledTexture128.Init( DXGI_FORMAT_R16G16B16A16_UNORM, 128.0f ) == false)
-	{
-		return false;
-	}
-	if ( myDownsampledTexture256.Init( DXGI_FORMAT_R16G16B16A16_UNORM, 256.0f ) == false)
-	{
-		return false;
-	}
-	if ( myDownsampledTexture512.Init( DXGI_FORMAT_R16G16B16A16_UNORM, 512.0f ) == false)
-	{
-		return false;
-	}
-	if ( myDownsampledOnePixel.InitForOnePixel() == false )
-	{
-		return false;
-	}
 	if ( myShadowBuffer.Init( DXGI_FORMAT_R32G32B32A32_FLOAT ) == false)
 	{
 		return false;
@@ -173,11 +345,38 @@ bool Renderer::Init()
 	{
 		return false;
 	}
-	if ( myCubeMap.InitCube() == false )
+	for(int index = 0; index < Application::myNumberOfAmbientProbes; index++)
+	{
+		myAmbientProbes[index].Init();
+	}
+	for(int index = 0; index < 6; index++)
+	{
+		if(myTemporaryCubeSides[index].Init(DXGI_FORMAT_R32G32B32A32_FLOAT, 20) == false)
+		{
+			return false;
+		}
+		if(myTemporaryReflectionCubeSides[index].Init(DXGI_FORMAT_R32G32B32A32_FLOAT, 20) == false)
+		{
+			return false;
+		}
+	}
+	if(myTemporaryReflectionTexture.Init(DXGI_FORMAT_R32G32B32A32_FLOAT, 20) == false)
+	{
+		return false;
+	}
+	if(myDownsampledAlbedo.Init(DXGI_FORMAT_R32G32B32A32_FLOAT, (int)locDownsampleSize) == false)
+	{
+		return false;
+	}
+	if(myDownsampledAlbedo2.Init(DXGI_FORMAT_R32G32B32A32_FLOAT, (int)locDownsampleSize) == false)
 	{
 		return false;
 	}
 	if ( myDepthMap.Init( DXGI_FORMAT_R32G32B32A32_FLOAT ) == false )
+	{
+		return false;
+	}
+	if ( myLinearDepthMap.Init( DXGI_FORMAT_R32G32B32A32_FLOAT ) == false )
 	{
 		return false;
 	}
@@ -193,13 +392,19 @@ bool Renderer::Init()
 	{
 		return false;
 	}
-	if(myAmbientOcclusionMap.Init(DXGI_FORMAT_R32G32B32A32_FLOAT) == false)
+	if ( myAlbedoMap2.Init( DXGI_FORMAT_R32G32B32A32_FLOAT ) == false )
 	{
 		return false;
 	}
-
-	myNoiseTexture = Engine::GetInstance()->GetTextureContainer().GetTexture("Noise.png", false);
-	if(myNoiseTexture == NULL)
+	if(myAmbientMap.Init(DXGI_FORMAT_R32G32B32A32_FLOAT) == false)
+	{
+		return false;
+	}
+	if(myShadowMapCopy.Init(DXGI_FORMAT_R32G32B32A32_FLOAT) == false)
+	{
+		return false;
+	}
+	if(myShadowMapCopy2.Init(DXGI_FORMAT_R32G32B32A32_FLOAT) == false)
 	{
 		return false;
 	}
@@ -215,23 +420,15 @@ void Renderer::ClearRenderTargets( float aClearColor[4] )
 	float white[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 
 	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myRenderTargetTexture.GetRenderTargetView(), aClearColor );
-	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myDownsampledTexture2.GetRenderTargetView(), black );
-	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myDownsampledTexture4.GetRenderTargetView(), black );
-	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myDownsampledTexture8.GetRenderTargetView(), black );
-	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myDownsampledTexture16.GetRenderTargetView(), black );
-	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myDownsampledTexture32.GetRenderTargetView(), black );
-	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myDownsampledTexture64.GetRenderTargetView(), black );
-	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myDownsampledTexture128.GetRenderTargetView(), black );
-	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myDownsampledTexture512.GetRenderTargetView(), black );
-	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myDownsampledOnePixel.GetRenderTargetView(), black );
 	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myShadowBuffer.GetRenderTargetView(), black );
 	Engine::GetInstance()->GetDevice()->ClearDepthStencilView( myShadowDepthStencilView, D3D10_CLEAR_DEPTH, 1.0f, 0 );
 	
 	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myDepthMap.GetRenderTargetView(), black );
+	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myLinearDepthMap.GetRenderTargetView(), black );
 	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myFinalScene.GetRenderTargetView(), black );
 	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myNormalMap.GetRenderTargetView(), black );
 	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myAlbedoMap.GetRenderTargetView(), black );
-	Engine::GetInstance()->GetDevice()->ClearRenderTargetView( myAmbientOcclusionMap.GetRenderTargetView(), black );
+	Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myAmbientMap.GetRenderTargetView(), black);
 }
 
 void Renderer::Cleanup()
@@ -246,7 +443,10 @@ void Renderer::Cleanup()
 	myDownsampledTexture128.Release();
 	myDownsampledTexture256.Release();
 	myDownsampledOnePixel.Release();
-	myCubeMap.Release();
+	//for(int index = 0; index < Application::myNumberOfAmbientProbes; index++)
+	//{
+	//	myAmbientProbes[index].Release();
+	//}
 	myShadowBuffer.Release();
 
 	myDepthMap.Release();
@@ -426,35 +626,27 @@ bool Renderer::InitShadowDepthStencil()
 	return true;
 }
 
-
 void Renderer::RenderDepthNormalAlbedo()
 {	
-	//RENDER DEPTH, NORMAL AND ALBEDO AT SAME TIME
-	ID3D10RenderTargetView *renderTargets[3] = {myDepthMap.GetRenderTargetView(), 
-		myNormalMap.GetRenderTargetView(),
-		myAlbedoMap.GetRenderTargetView()};
-	Engine::GetInstance()->GetDevice()->OMSetRenderTargets(3, renderTargets, Engine::GetInstance()->GetDepthStencil() );
-
+	ID3D10RenderTargetView *renderTargets[5] = {myDepthMap.GetRenderTargetView(), myNormalMap.GetRenderTargetView(), myAlbedoMap.GetRenderTargetView(), myAmbientMap.GetRenderTargetView(), myLinearDepthMap.GetRenderTargetView()};
+	
+	Engine::GetInstance()->GetDevice()->OMSetRenderTargets(5, renderTargets, Engine::GetInstance()->GetDepthStencil() );
+	
 	myScene->Render( EffectTechniques::DEPTH_NORMAL_ALBEDO );
-}	
-void Renderer::RenderDeferredDirectionalLights(RenderTarget *aRenderTarget, const Vector2f &aSize, const Vector2f anOffset)
+}
+
+void Renderer::RenderDeferredDirectionalLights(RenderTarget *aRenderTarget, RenderTarget& aDepthMap, const Vector2f &aSize, const Vector2f anOffset)
 {
 	for(int index = 0; index < myScene->myLights.Count(); index++)
 	{
 		Light *currentLight = myScene->myLights[index];
 		if(currentLight->GetType() == Light::DIRECTIONAL_LIGHT_TYPE)
 		{
-			Engine::GetInstance()->GetEffectInput().UpdateDirectionalLight(currentLight->GetLightColor(),
-				currentLight->GetCurrentLightDir());
-			
-			Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myNormalMap.GetShaderResourceView());
-			Engine::GetInstance()->GetEffectInput().SetThirdPostProcesingTexture(myAlbedoMap.GetShaderResourceView());
+			//Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myNormalMap.GetShaderResourceView());
+			//Engine::GetInstance()->GetEffectInput().SetThirdPostProcesingTexture(myAlbedoMap.GetShaderResourceView());
 
-			myFullscreenHelper.Process(myDepthMap.GetShaderResourceView(),
-				aRenderTarget->GetRenderTargetView(), 
-				EffectTechniques::DEFERRED_DIRECTIONAL,
-				aSize,
-				anOffset);
+			Engine::GetInstance()->GetEffectInput().UpdateDirectionalLight(currentLight->GetLightColor(), currentLight->GetCurrentLightDir());
+			myFullscreenHelper.Process(aDepthMap.GetShaderResourceView(), aRenderTarget->GetRenderTargetView(), EffectTechniques::DEFERRED_DIRECTIONAL, aSize, anOffset);
 		}
 	}
 }
@@ -464,35 +656,62 @@ void Renderer::RenderDeferredPointLights(RenderTarget *aRenderTarget, const Vect
 	for(int index = 0; index < myScene->myLights.Count(); index++)
 	{
 		Light *currentLight = myScene->myLights[index];
+		if(currentLight->myIsInsideFrustrum == false)
+		{
+			continue;
+		}
 		if(currentLight->GetType() == Light::POINT_LIGHT_TYPE)
 		{
-			Engine::GetInstance()->GetEffectInput().UpdatePointLight(currentLight->GetLightColor(),
-				currentLight->GetPosition(),
-				currentLight->GetMaxDistance());
-
-			currentLight->SetProjectionTexture();
-			Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myNormalMap.GetShaderResourceView());
-			Engine::GetInstance()->GetEffectInput().SetThirdPostProcesingTexture(myAlbedoMap.GetShaderResourceView());
+			Engine::GetInstance()->GetEffectInput().UpdatePointLight(currentLight->GetLightColor(), currentLight->GetPosition(), currentLight->GetMaxDistance());
+			//currentLight->SetProjectionTexture();
 
 			ID3D10RenderTargetView *tempView = aRenderTarget->GetRenderTargetView();
-			//myFullscreenHelper.ProcessSphere(myDepthMap.GetShaderResourceView(),
-			//	tempView,
-			//	EffectTechniques::DEFERRED_POINT_MESH,
-			//	aSize,
-			//	anOffset,
-			//	Vector3f(0.0f, 0.0f, 0.0f),
-			//	myScene->GetCamera());
+			//Engine::GetInstance()->GetDevice()->OMSetRenderTargets( 1, &tempView, Engine::GetInstance()->GetDepthStencil());
 
-			myFullscreenHelper.Process(myDepthMap.GetShaderResourceView(),
-				tempView, 
-				EffectTechniques::DEFERRED_POINT,
-				aSize,
-				anOffset);
+			Vector4f sphereScreen = Vector4f(currentLight->GetPosition().myX, currentLight->GetPosition().myY, currentLight->GetPosition().myZ, 0.0f);
+			sphereScreen.w = 1.0f;
+			sphereScreen = sphereScreen * myScene->GetCamera().GetInverseOrientation();
+			float z = sphereScreen.z;
+			sphereScreen = sphereScreen * myScene->GetCamera().GetProjection();
+			sphereScreen /= sphereScreen.w;
+			Vector2f screenHalfRes;
+			screenHalfRes.x = static_cast<float>(Engine::GetInstance()->GetScreeenWidth()) * 0.5f;
+			screenHalfRes.y = static_cast<float>(Engine::GetInstance()->GetScreenHeight()) * 0.5f;
+			sphereScreen.x = sphereScreen.x * screenHalfRes.x + screenHalfRes.x;
+			sphereScreen.y = -sphereScreen.y * screenHalfRes.y + screenHalfRes.y;
+			float distance = z;
+			float specialWidth;
+			if( distance > 0.0f )
+			{
+				specialWidth = screenHalfRes.x * 2.0f * ( currentLight->GetMaxDistance() / distance );
+			}
+			else if( distance == 0.0f )
+			{
+				specialWidth = screenHalfRes.x * 2.0f * ( currentLight->GetMaxDistance() / 0.0000001f );
+			}
+			else
+			{
+				specialWidth = screenHalfRes.x * 2.0f * ( currentLight->GetMaxDistance() / -distance );
+			}
+			Vector2i sphereScreen2D = Vector2i( static_cast<int>(sphereScreen.x), static_cast<int>(sphereScreen.y) );
+			Vector2i maxDistance2D = Vector2i( static_cast<int>(specialWidth), static_cast<int>(specialWidth) );
+			Vector2i minCorner = sphereScreen2D - maxDistance2D;
+			Vector2i maxCorner = sphereScreen2D + maxDistance2D;
+			Engine::GetInstance()->SetScissorRect( minCorner, maxCorner );
+
+			mySphereMesh->Scale(currentLight->GetMaxDistance() * 0.5913985f);
+			mySphereMesh->SetPosition(currentLight->GetPosition());
+
+			const float distance2 = (myScene->GetCamera().GetPositionNotRetarded() - currentLight->GetPosition()).Length();
+			const bool isCameraInsideMeshFlag = (distance2 <= currentLight->GetMaxDistance());
+
+			//myFullscreenHelper.Process(myDepthMap.GetShaderResourceView(), tempView, EffectTechniques::DEFERRED_POINT_SCISSORED, aSize, anOffset);
+			myFullscreenHelper.ProcessMeshCulling(myScene->GetCamera(), mySphereMesh, EffectTechniques::DEFERRED_POINT_MESH, myDepthMap.GetShaderResourceView(), tempView, isCameraInsideMeshFlag);	
 		}
 	}
 }
 
-void Renderer::RenderDeferredSpotLights(RenderTarget *aRenderTarget, const Vector2f &aSize, const Vector2f anOffset)
+void Renderer::RenderDeferredSpotLights(RenderTarget *aRenderTarget, RenderTarget& aDepthMap, const Vector2f &aSize, const Vector2f anOffset, const bool anEnableSpecFlag)
 {
 	const int nbrOfLights = myScene->myLights.Count();
 	for(int index = 0; index < nbrOfLights; index++)
@@ -500,46 +719,100 @@ void Renderer::RenderDeferredSpotLights(RenderTarget *aRenderTarget, const Vecto
 		Light *currentLight = myScene->myLights[index];
 		if(currentLight->GetType() == Light::SPOT_LIGHT_TYPE)
 		{
-			Engine::GetInstance()->GetEffectInput().UpdateSpotLight(currentLight->GetLightColor(),
-				currentLight->GetCurrentLightDir(),
-				currentLight->GetPosition(),
-				currentLight->GetMaxDistance(),
-				currentLight->GetInnerFallofAngle(),
-				currentLight->GetOuterFallofAngle());
+			Engine::GetInstance()->GetEffectInput().UpdateSpotLight(currentLight->GetLightColor(), currentLight->GetCurrentLightDir(), currentLight->GetPosition(), currentLight->GetMaxDistance(), currentLight->GetInnerFallofAngle(), currentLight->GetOuterFallofAngle());
 			
-			currentLight->SetProjectionTexture();
+			//currentLight->SetProjectionTexture();
 
- 			Matrix44f view = currentLight->GetViewMatrix();
+			Matrix44f temp = currentLight->myLightViewMatrix;
+			//temp.SetPosition(Vector3f(0.0f, 0.0f, 0.0f));
+			D3DXMATRIX matrix(&temp.myData[0]);
+			D3DXMATRIX inverse;
+			D3DXMATRIX* result = D3DXMatrixInverse(&inverse, NULL, &matrix);
+			assert(result != NULL && "D3DXMatrixInverse failed");
+			Matrix44f newInverse;
+			newInverse.Init(&inverse[0]);
+			//newInverse.SetPosition(currentLight->myLightViewMatrix.GetPosition());
+			//Vector4f hej(10.0f, 0.0f, 10.0f, 0.0f);
+			//hej = hej * view;
+			//hej = hej * currentLight->GetProjectionMatrix();
+			Matrix44f view = newInverse;//newInverse;
 			Matrix44f projection = currentLight->GetProjectionMatrix();
  			Engine::GetInstance()->GetEffectInput().SetMatrixArray( "LightView", &view, 1 );
  			Engine::GetInstance()->GetEffectInput().SetMatrixArray( "LightProjection", &projection, 1 );
-			Engine::GetInstance()->GetEffectInput().SetSecondaryPostProcesingTexture(myNormalMap.GetShaderResourceView());
-			Engine::GetInstance()->GetEffectInput().SetThirdPostProcesingTexture(myAlbedoMap.GetShaderResourceView());
 
-			ID3D10RenderTargetView *tempView = aRenderTarget->GetRenderTargetView();
-			myFullscreenHelper.Process(myDepthMap.GetShaderResourceView(),
-				tempView, 
-				EffectTechniques::DEFERRED_SPOT,
-				aSize,
-				anOffset);
+			const float clearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+			Engine::GetInstance()->GetDevice()->ClearRenderTargetView(currentLight->myShadowMap->myRenderTargetView, clearColor);
+			Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myShadowMapCopy.myRenderTargetView, clearColor);
+			Engine::GetInstance()->GetDevice()->ClearRenderTargetView(myShadowMapCopy2.myRenderTargetView, clearColor);
+			Engine::GetInstance()->GetDevice()->ClearDepthStencilView(Engine::GetInstance()->GetDepthStencil(), D3D10_CLEAR_DEPTH, 1.0f, 0);
+			Engine::GetInstance()->GetDevice()->OMSetRenderTargets(1, &currentLight->myShadowMap->myRenderTargetView, Engine::GetInstance()->GetDepthStencil());
+			myScene->Render(EffectTechniques::DEPTH_FROM_LIGHT);
+			
+			//WriteTextureToDisk(*currentLight->myShadowMap, "shadow1");
+			myFullscreenHelper.Process(currentLight->myShadowMap->GetShaderResourceView(), myShadowMapCopy.GetRenderTargetView(), "BlurShadowX", Vector2f(800.0f, 800.0f));
+			myFullscreenHelper.Process(myShadowMapCopy.GetShaderResourceView(), myShadowMapCopy2.GetRenderTargetView(), "BlurShadowY", Vector2f(800.0f, 800.0f));
+			myFullscreenHelper.Process(myShadowMapCopy2.GetShaderResourceView(), currentLight->myShadowMap->GetRenderTargetView(), "Render_Quad", Vector2f(800.0f, 800.0f));
+			//myFullscreenHelper.Process(currentLight->myShadowMap->GetShaderResourceView(), myShadowMapCopy.GetRenderTargetView(), "JaffeSpecialBlurHorizontal2", Vector2f(800.0f, 800.0f));
+			//myFullscreenHelper.Process(myShadowMapCopy.GetShaderResourceView(), myShadowMapCopy2.GetRenderTargetView(), "JaffeSpecialBlurVertical2", Vector2f(800.0f, 800.0f));
+			//myFullscreenHelper.Process(myShadowMapCopy2.GetShaderResourceView(), currentLight->myShadowMap->GetRenderTargetView(), "Render_Quad", Vector2f(800.0f, 800.0f));
+			//WriteTextureToDisk(*currentLight->myShadowMap, "shadow2");
+			//WriteTextureToDisk(myShadowMapCopy, "shadow3");
+			//std::stringstream tempSS;
+			//tempSS << "ShadowDepthMap" << index + 1;
+			//WriteTextureToDisk(myShadowMapCopy2, tempSS.str());
+			Engine::GetInstance()->GetEffectInput().SetShadowTexture(currentLight->myShadowMap->GetShaderResourceView());
+
+			if(myToggleAdvancedCulling == false)
+			{
+				if(anEnableSpecFlag == true)
+				{
+					myFullscreenHelper.Process(aDepthMap.GetShaderResourceView(), aRenderTarget->GetRenderTargetView(), EffectTechniques::DEFERRED_SPOT, aSize, anOffset);
+				}
+				else
+				{
+					myFullscreenHelper.Process(aDepthMap.GetShaderResourceView(), aRenderTarget->GetRenderTargetView(), "Render_DeferredSpotNoSpec", aSize, anOffset);
+				}
+			}
+			else
+			{
+				Vector4f sphereScreen = Vector4f(currentLight->GetPosition().myX, currentLight->GetPosition().myY, currentLight->GetPosition().myZ, 0.0f);
+				sphereScreen.w = 1.0f;
+				sphereScreen = sphereScreen * myScene->GetCamera().GetInverseOrientation();
+				float z = sphereScreen.z;
+				sphereScreen = sphereScreen * myScene->GetCamera().GetProjection();
+				sphereScreen /= sphereScreen.w;
+				Vector2f screenHalfRes;
+				screenHalfRes.x = static_cast<float>(Engine::GetInstance()->GetScreeenWidth()) * 0.5f;
+				screenHalfRes.y = static_cast<float>(Engine::GetInstance()->GetScreenHeight()) * 0.5f;
+				sphereScreen.x = sphereScreen.x * screenHalfRes.x + screenHalfRes.x;
+				sphereScreen.y = -sphereScreen.y * screenHalfRes.y + screenHalfRes.y;
+				float distance = z;
+				float specialWidth;
+				if( distance > 0.0f )
+				{
+					specialWidth = screenHalfRes.x * 2.0f * ( currentLight->GetMaxDistance() / distance );
+				}
+				else
+				{
+					specialWidth = screenHalfRes.x * 2.0f * ( currentLight->GetMaxDistance() / 0.01f );
+				}
+				Vector2i sphereScreen2D = Vector2i( static_cast<int>(sphereScreen.x), static_cast<int>(sphereScreen.y) );
+				Vector2i maxDistance2D = Vector2i( static_cast<int>(specialWidth), static_cast<int>(specialWidth) );
+				Vector2i minCorner = sphereScreen2D - maxDistance2D;
+				Vector2i maxCorner = sphereScreen2D + maxDistance2D;
+				Engine::GetInstance()->SetScissorRect( minCorner, maxCorner );
+				myFullscreenHelper.Process(aDepthMap.GetShaderResourceView(), aRenderTarget->GetRenderTargetView(), EffectTechniques::DEFERRED_SPOT_SCISSORED, aSize, anOffset);
+			}
 		}
+		Engine::GetInstance()->GetEffectInput().SetShadowTexture(NULL);
 	}
 }
-
-void Renderer::RenderFinalFrameTexture(RenderTarget &aTextureToRender, const Vector2f &aSize, const Vector2f anOffset)
-{
-	myFullscreenHelper.Process(aTextureToRender.GetShaderResourceView(),
-		Engine::GetInstance()->GetBackBuffer(), EffectTechniques::QUAD,
-		aSize,
-		anOffset); 
-}	
 
 void Renderer::RenderSSAO(RenderTarget &aTexture, const Vector2f &aSize, const Vector2f anOffset)
 {
 	Engine::GetInstance()->GetEffectInput().SetNoiseTexture(myNoiseTexture->GetTexture());
 	Engine::GetInstance()->GetEffectInput().SetThirdPostProcesingTexture(myNormalMap.GetShaderResourceView());
 	
-
 	ID3D10RenderTargetView *tempView = aTexture.GetRenderTargetView();
 	myFullscreenHelper.Process(myDepthMap.GetShaderResourceView(),
 		tempView, 
@@ -548,9 +821,26 @@ void Renderer::RenderSSAO(RenderTarget &aTexture, const Vector2f &aSize, const V
 		anOffset);
 }
 
-ID3D10ShaderResourceView* Renderer::GetGeneratedCubeMap()
+void Renderer::WriteTextureToDisk(RenderTarget& aTexture, std::string aFilename)
 {
-	return myCubeMap.GetShaderResourceView();
+	const std::string fileName = "TextureOutput/" + aFilename + ".dds";
+	HRESULT hr = D3DX10SaveTextureToFile(aTexture.myTexture, D3DX10_IFF_DDS, fileName.c_str());
+	assert(hr == S_OK && "SAVE TEXTURE TO FILE FAILED");
+}
+
+void Renderer::WriteAllToDisk()
+{
+	
+}
+
+ID3D10ShaderResourceView* Renderer::GetGeneratedCubeMap(const int anAmbientProbeIndex)
+{
+	return myAmbientProbes[anAmbientProbeIndex].myShaderResourceView;
+}
+
+ID3D10ShaderResourceView* Renderer::GetGeneratedReflectionMap(const int anAmbientProbeIndex)
+{
+	return myAmbientProbes[anAmbientProbeIndex].myReflectionShaderResourceView;
 }
 
 FullscreenHelper& Renderer::GetFullScreenHelper()
@@ -565,4 +855,5 @@ void Renderer::CopyAlbedo()
 		Vector2f(Engine::GetInstance()->GetScreeenWidth(), Engine::GetInstance()->GetScreenHeight()),
 		Vector2f(0,0) );
 }
+
 

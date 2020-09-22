@@ -23,6 +23,7 @@ public:
 	Instance(Model& aModel);
 	~Instance(void);
 
+	void Scale(const float aScale);
 	bool Init();
 	void Render(Camera& aCamera, EffectTechniques::TechniqueType aTechinqueType);
 	void RenderUsingEffect(Camera& aCamera, EffectTechniques::TechniqueType aTechinqueType, Effect *anEffect);
@@ -41,16 +42,23 @@ public:
 	void PerformTransformation(Matrix44f& aOrientation);
 
 	void GetPosition(Vector3f& aPosition);
+	const Vector3f& GetPosition2()
+	{
+		return myPosition;
+	}
 	Matrix44f& GetOrientation();
 	Model& GetModel();
 
 	void SetPosition(Vector3f& aPosition);
+	void SetRotation(Matrix33f& aRotation);
 	void SetOrientation(Matrix44f& aOrientation);
 
 	void TryAddLight( float aLightsStrength, Light* aLight );
 	void ClearLights();
 
-private:
+	bool myIsInsideFrustrum;
+	int myAmbientProbeIndex;
+//private:
 	struct LightWithStrength
 	{
 		LightWithStrength(Light* aLight, const float aStrength)

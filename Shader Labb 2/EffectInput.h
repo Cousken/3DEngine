@@ -43,12 +43,15 @@ public:
 	void SetDiffuseMap( Texture* aTexture );
 	void SetEnviromentMap( Texture* aEnviromentMap );
 	void SetEnviromentMap( ID3D10ShaderResourceView* aEnviromentMap );
+	void SetReflectionMap( ID3D10ShaderResourceView* aReflectionMap );
+	void SetAmbientProbePosition(Vector3f& aPosition);
 	void SetEmptyEnviromentMap();
 	void SetNormalMap( Texture* aNormalMap );
 	
 	void SetPrimaryPostProcesingTexture( ID3D10ShaderResourceView* aResourceToRender );
 	void SetSecondaryPostProcesingTexture( ID3D10ShaderResourceView* aResourceToRender );
 	void SetThirdPostProcesingTexture( ID3D10ShaderResourceView* aResourceToRender );
+	void SetShadowTexture(ID3D10ShaderResourceView* aResource);
 	void SetVelocityTexture( ID3D10ShaderResourceView* aResourceToRender );
 	void SetPreviousVelocityTexture( ID3D10ShaderResourceView* aResourceToRender );
 	void SetNoiseTexture( ID3D10ShaderResourceView* aResource );
@@ -62,7 +65,7 @@ public:
 	void SetScalar( const std::string &aName, const float aScalar );
 	void SetMatrixArray( const std::string &aName, const Matrix44f* aMatrix, const unsigned int anAmount );
 
-private:
+//private:
 	friend class Effect;
 
 	ID3D10EffectPool* GetEffectPool();
@@ -113,11 +116,13 @@ private:
 	
 	ID3D10EffectShaderResourceVariable *myDiffuseVariable;
 	ID3D10EffectShaderResourceVariable *myEnviromentMapVariable;
+	ID3D10EffectVectorVariable *myAmbientProbePositionVariable;
 	ID3D10EffectShaderResourceVariable *myNormalMapVariable;
 	
 	ID3D10EffectShaderResourceVariable *myPrimaryPostProcessingVariable;
 	ID3D10EffectShaderResourceVariable *mySecondaryPostProcessingVariable;
 	ID3D10EffectShaderResourceVariable *myThirdPostProcessingVariable;
+	ID3D10EffectShaderResourceVariable *myShadowTextureVariable;
 	ID3D10EffectShaderResourceVariable *myCurrentVelocityTexture;
 	ID3D10EffectShaderResourceVariable *myPreviousVelocityTexture;
 	ID3D10EffectShaderResourceVariable *myNoiseTexture;

@@ -21,7 +21,9 @@ public:
 	~Scene(void);
 
 	void AddInstance(Instance* aInstnace);
+	void RemoveInstance(Instance* anInstance);
 	void AddLight(Light* aLight);
+	void RemoveLight(Light* aLight);
 	void AddEmittor( CPUParticleEmittorInstance* myParticleEmittor );
 	void AddStreak(Streak& aStreak);
 
@@ -55,12 +57,12 @@ private:
 	Camera myCamera;
 
 	CommonUtilities::GrowingArray<Instance*> myAllInstances;
-	CommonUtilities::GrowingArray<Instance*> myVisibleInstances;
+	//CommonUtilities::GrowingArray<Instance*> myVisibleInstances;
 	CommonUtilities::GrowingArray<Light*> myLights; 
 	CommonUtilities::GrowingArray<Streak*> myStreaks;
 	//CU::GrowingArray<CPUParticleEmittorInstance*, int> myEmittors;
 
-	OctTree myOctTree;
+	//OctTree myOctTree;
 
 };
 

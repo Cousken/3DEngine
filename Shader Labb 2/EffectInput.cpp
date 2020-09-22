@@ -136,11 +136,13 @@ bool EffectInput::Init( const std::string &aEffectFile )
 
 	myDiffuseVariable = myEffectPool->AsEffect()->GetVariableByName( "DiffuseMap" )->AsShaderResource();
 	myEnviromentMapVariable = myEffectPool->AsEffect()->GetVariableByName( "EnviromentMap" )->AsShaderResource();
+	myAmbientProbePositionVariable = myEffectPool->AsEffect()->GetVariableByName("AmbientProbePosition")->AsVector();
 	myNormalMapVariable = myEffectPool->AsEffect()->GetVariableByName( "NormalMap" )->AsShaderResource();
 	
 	myPrimaryPostProcessingVariable = myEffectPool->AsEffect()->GetVariableByName( "PrimaryShaderResourceView" )->AsShaderResource();
 	mySecondaryPostProcessingVariable = myEffectPool->AsEffect()->GetVariableByName( "SecondaryShaderResourceView" )->AsShaderResource();
 	myThirdPostProcessingVariable = myEffectPool->AsEffect()->GetVariableByName( "ThirdShaderResourceView" )->AsShaderResource();
+	myShadowTextureVariable = myEffectPool->AsEffect()->GetVariableByName("ShadowTexture")->AsShaderResource();
 	myCurrentVelocityTexture = myEffectPool->AsEffect()->GetVariableByName( "CurrentVelocityTexture" )->AsShaderResource();
 	myPreviousVelocityTexture = myEffectPool->AsEffect()->GetVariableByName( "PreviousVelocityTexture" )->AsShaderResource();
 	myNoiseTexture = myEffectPool->AsEffect()->GetVariableByName("RandomSSAOTexture")->AsShaderResource();
@@ -293,7 +295,17 @@ void EffectInput::SetEnviromentMap( Texture* aEnviromentMap )
 
 void EffectInput::SetEnviromentMap( ID3D10ShaderResourceView* aEnviromentMap )
 {
-	myEnviromentMapVariable->SetResource( aEnviromentMap );
+	HRESULT hr = myEnviromentMapVariable->SetResource( aEnviromentMap );
+}
+
+void EffectInput::SetReflectionMap( ID3D10ShaderResourceView* aReflectionMap )
+{
+	HRESULT hr = myEffectPool->AsEffect()->GetVariableByName("ReflectionMap")->AsShaderResource()->SetResource(aReflectionMap);
+}
+
+void EffectInput::SetAmbientProbePosition(Vector3f& aPosition)
+{
+	myAmbientProbePositionVariable->SetFloatVector(&aPosition.myX);
 }
 
 void EffectInput::SetEmptyEnviromentMap()
@@ -310,7 +322,6 @@ void EffectInput::SetPrimaryPostProcesingTexture( ID3D10ShaderResourceView* aPos
 {
 	myPrimaryPostProcessingVariable->SetResource( aPostProcessingResource );
 }
-
 
 void EffectInput::SetVelocityTexture( ID3D10ShaderResourceView* aResourceToRender )
 {
@@ -370,6 +381,11 @@ void EffectInput::SetSecondaryPostProcesingTexture( ID3D10ShaderResourceView* aR
 void EffectInput::SetThirdPostProcesingTexture( ID3D10ShaderResourceView* aResourceToRender )
 {
 	myThirdPostProcessingVariable->SetResource( aResourceToRender );
+}
+
+void EffectInput::SetShadowTexture(ID3D10ShaderResourceView* aResource)
+{
+	myShadowTextureVariable->SetResource(aResource);
 }
 
 void EffectInput::SetProjectionTexture2D( ID3D10ShaderResourceView* aResource )

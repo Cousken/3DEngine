@@ -12,7 +12,6 @@ Engine::Engine( )
 	myDriverType = D3D10_DRIVER_TYPE_NULL;
 	my3DDevice = NULL;
 	mySwapChain = NULL;
-	myBackBufferRenderTargetView = NULL;
 }
 
 Engine::~Engine(void)
@@ -150,7 +149,7 @@ bool Engine::Init( WNDPROC aWinProc, int nCmdShow, SetupInfo aSetupInfo, HINSTAN
 		return false;
 	}
 
-	if( Engine::GetInstance()->D3DSetup() == false )
+	if( FAILED( Engine::GetInstance()->D3DSetup() ) )
 	{
 		Engine::GetInstance()->CleanupDevice();
 		return false;
@@ -206,7 +205,7 @@ bool Engine::D3DViewPortSetup( UINT width, UINT height )
 	}
 }
 
-HRESULT Engine::D3DDeviceSetup( UINT width, UINT height, UINT createDeviceFlags )
+bool Engine::D3DDeviceSetup( UINT width, UINT height, UINT createDeviceFlags )
 {
 	HRESULT hr = S_OK;
 
@@ -236,12 +235,18 @@ HRESULT Engine::D3DDeviceSetup( UINT width, UINT height, UINT createDeviceFlags 
 		myDriverType = driverTypes[driverTypeIndex];
 		hr = D3D10CreateDeviceAndSwapChain( NULL, myDriverType, NULL, createDeviceFlags,
 			D3D10_SDK_VERSION, &swapChain, &mySwapChain, &my3DDevice );
-
 		if( SUCCEEDED( hr ) )
 			break;
 	}
 
-	return hr;
+	if( SUCCEEDED( hr ) )
+	{
+		return true;
+	}
+	else
+	{
+		false;
+	}
 }
 
 ID3D10Device* Engine::GetDevice() const
@@ -282,6 +287,30 @@ const int Engine::GetScreeenWidth() const
 const int Engine::GetScreenHeight() const
 {
 	return myInfoArgument.myResolutionHeight;
+}
+
+void Engine::ResetScissorRect()
+{
+	D3D10_RECT newRect;
+	newRect.bottom = 0;
+	newRect.left = 0;
+	newRect.right = 0;
+	newRect.top = 0;
+
+	UINT numberOfRects = 0;
+	my3DDevice->RSSetScissorRects( numberOfRects, &newRect );
+}
+
+void Engine::SetScissorRect(const Vector2i& aMinCorner, const Vector2i& aMaxCorner)
+{
+	D3D10_RECT newRect;
+	newRect.bottom = aMaxCorner.y;
+	newRect.left = aMinCorner.x;
+	newRect.right = aMaxCorner.x;
+	newRect.top = aMinCorner.y;
+
+	UINT numberOfRects = 1;
+	my3DDevice->RSSetScissorRects( numberOfRects, &newRect );
 }
 
 bool Engine::InitZBuffer()

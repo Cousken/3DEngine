@@ -5,7 +5,15 @@
 
 Instance::~Instance(void)
 {
+	myAmbientProbeIndex = -1;
 }	
+
+void Instance::Scale(const float aScale)
+{
+	myOrientation.myData[0] = aScale;
+	myOrientation.myData[5] = aScale;
+	myOrientation.myData[10] = aScale;
+}
 
 bool Instance::Init( )
 {
@@ -33,8 +41,10 @@ bool Instance::Init( )
 Instance::Instance( Model& aModel )
 : myModel(aModel)
 {
+	myIsInsideFrustrum = true;
 	myEffectFile = "";
 	ClearLights();
+	myAmbientProbeIndex = -1;
 
 	myAnimation = NULL;
 }
@@ -94,7 +104,7 @@ void Instance::RenderToTarget( Camera& myCamera, EffectTechniques::TechniqueType
 
 void Instance::RenderModel( Model* aModel, const Matrix44f aParentSpace, EffectTechniques::TechniqueType aTechniqueType, TransformationNodeInstance& aHierarchy, CommonUtilities::StaticArray< Matrix44f, 255 >& aBoneMatrixArray )
 {
-	aModel->Render(aParentSpace, aBoneMatrixArray, aTechniqueType);
+	aModel->Render(myAmbientProbeIndex, aParentSpace, aBoneMatrixArray, aTechniqueType);
 
 	for(int i=0;i<aModel->myChilds.Count();i++)
 	{
@@ -157,6 +167,11 @@ Matrix44f& Instance::GetOrientation()
 void Instance::SetPosition( Vector3f& aPosition )
 {
 	myPosition = aPosition;
+}
+
+void Instance::SetRotation(Matrix33f& aRotation)
+{
+	myOrientation = aRotation;
 }
 
 void Instance::GetPosition( Vector3f& aPosition )

@@ -2,9 +2,11 @@
 #include "Engine.h"
 #include "Texture.h"
 #include <D3DX10.h>
+#include "RenderTarget.h"
 
 Light::Light( const LightType aLightType /*= DIRECTIONAL_LIGHT_TYPE*/ )
 {
+	myIsInsideFrustrum = true;
 	myType = aLightType;
 	myCastShadowFlag = true;
 	myProjectiveTexture = NULL;
@@ -20,6 +22,10 @@ Light::Light( const LightType aLightType /*= DIRECTIONAL_LIGHT_TYPE*/ )
 	float myFallofOuterAngle = 0;
 
 	Matrix33f myOrientation = Matrix33f::Identity();
+
+	myShadowMap = new RenderTarget();
+	bool success = myShadowMap->Init(DXGI_FORMAT_R32G32B32A32_FLOAT, 800);
+	assert(success == true && "ERROR CREATING SHADOW MAP");
 }
 
 Light::~Light(void)
@@ -59,10 +65,40 @@ void Light::SetLightColor( Vector4f& aVector )
 
 void Light::SetLightDir( Vector3f& aVector )
 {
-	myDirection.x = aVector.x;
-	myDirection.y = aVector.y;
-	myDirection.z = aVector.z;
-	myDirection = myDirection.Normalize();
+	Vector3f normVector = aVector.Normalize();
+	myDirection.x = normVector.x;
+	myDirection.y = normVector.y;
+	myDirection.z = normVector.z;
+	myDirection.w = 0.0f;
+
+	D3DXMATRIX result;
+	D3DXVECTOR3 eye;
+	D3DXVECTOR3 at;
+	D3DXVECTOR3 up;
+	eye.x = myPosition.x;
+	eye.y = myPosition.y;
+	eye.z = myPosition.z;
+	at.x = myPosition.x + myDirection.x;
+	at.y = myPosition.y + myDirection.y;
+	at.z = myPosition.z + myDirection.z;
+	Vector3f upVector = Vector3f(myDirection.myX, myDirection.myY, myDirection.myZ) * Matrix33f::CreateRotateAroundX(-1.57f);
+	/*up.x = upVector.x;
+	up.y = upVector.y;
+	up.z = upVector.z;*/
+	up.x = 0.0f;
+	up.y = 1.0f;
+	up.z = 0.0f;
+
+	assert(D3DXMatrixLookAtLH( &result, &eye, &at, &up) != NULL && "ERROR CREATING LOOK AT MATRIX");
+
+	Matrix44f inverseOrientation;
+	for(int i = 0; i < 16; i++)
+	{
+		inverseOrientation.myData[i] = result[i];
+	}
+	Matrix44f orientation = inverseOrientation.TransposeInverse();
+	myLightViewMatrix = orientation;
+	myLightViewMatrix.SetPosition(myPosition);
 }
 
 void Light::SetMaxDistance( const float& aMaxDistance )
@@ -73,6 +109,7 @@ void Light::SetMaxDistance( const float& aMaxDistance )
 void Light::SetPosition( Vector3f& aPosition )
 {
 	myPosition = aPosition;
+	myLightViewMatrix.SetPosition(myPosition);
 }
 
 float& Light::GetMaxDistance()
@@ -217,27 +254,14 @@ const WorldViewProjectionMatrixes Light::GetWorldViewProjectionMatrixes(CommonUt
 
 const Matrix44f Light::GetProjectionMatrix()
 {
-// 	Matrix44f result;
-// 	if ( myType == SPOT_LIGHT_TYPE )
-// 	{
-// 		D3DXMATRIX  projection;
-// 		float diameter = sin(myFallofOuterAngle*2.0f) * myMaxDistance * 2.0f;
-// 		//D3DXMatrixOrthoLH( &projection, 2.0f * diameter, diameter, 0.01f, myMaxDistance);
-// 		D3DXMatrixPerspectiveLH( &projection, diameter, diameter, 0.01f, myMaxDistance);
-// 
-// 		result.Init(projection);
-// 		return result;
-// 	}
-// 	assert(false);
-// 	return Matrix44f::Identity();
+	float myNearPlane = 0.1f;
+	float myFarPlane = myMaxDistance;//+ 10.0f ;
 
-	float myNearPlane = 0.01f;
-	float myFarPlane = myMaxDistance;
-
-	float yFov = myFallofOuterAngle;
+	//float yFov = myFallofOuterAngle * 2.0f;
+	float yFov = 1.57f;//acos(myFallofOuterAngle) * 2.0f;
 
 	D3DXMATRIX  projection;
-	D3DXMatrixPerspectiveFovLH( &projection, yFov, 1, myNearPlane, myFarPlane );
+	D3DXMatrixPerspectiveFovLH( &projection, yFov, 1.0f, myNearPlane, myFarPlane );
 	Matrix44f result;
 	result.Init(static_cast<float*>(projection));
 	return result;

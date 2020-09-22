@@ -65,6 +65,7 @@ struct AABB
 };
 
 class Texture;
+class RenderTarget;
 
 class Light
 {
@@ -116,6 +117,9 @@ public:
 	void SetProjectionTexture();
 	Matrix44f GetViewMatrix();
 
+	bool myIsInsideFrustrum;
+	RenderTarget* myShadowMap;
+	Matrix44f myLightViewMatrix;
 private:
 	LightType myType;
 	EffectTechniques::TechniqueType myEffectTechnique;

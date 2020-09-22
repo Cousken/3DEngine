@@ -7,10 +7,21 @@
 #include "Engine.h"
 #include "Application.h"
 
+#pragma comment(lib, "FCollada")
+
 LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
 
+//int wWinMain()
+//{
+//	fm::SetAllocationFunctions(malloc, free);
+//}
 
-int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )
+//int WinMain()
+//{
+//	fm::SetAllocationFunctions(malloc, free);
+//}
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
 	fm::SetAllocationFunctions(malloc, free);
 
@@ -28,7 +39,7 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 		Application application((*Engine::GetInstance()));
 		application.Init();
 
-
+		ShowCursor(true);
 		while (1) 
 		{
 			// check for messages
@@ -71,6 +82,8 @@ int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdL
 
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
 {
+	fm::SetAllocationFunctions(malloc, free);
+	
 	PAINTSTRUCT ps;
 	HDC hdc;
 

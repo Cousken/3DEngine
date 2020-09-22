@@ -54,6 +54,11 @@ void Model::SetEffect( Effect* aEffect )
 	Model::InitBuffers();
 }
 
+CommonUtilities::GrowingArray<Model*>& Model::GetChildren()
+{
+	return myChilds;
+}
+
 CommonUtilities::GrowingArray<Surface>& Model::GetSurfaces()
 {
 	return mySurfaces;
@@ -190,7 +195,7 @@ bool Model::InitVertexBuffer()
 	return true;
 }
 
-void Model::Render( Matrix44< float > anOrientation, CommonUtilities::StaticArray< Matrix44f, 255 >& aBoneMatrixArray, const EffectTechniques::TechniqueType aTechniqueType /*= EffectTechniques::NORMAL */ )
+void Model::Render( int anAmbientProbeIndex, Matrix44< float > anOrientation, CommonUtilities::StaticArray< Matrix44f, 255 >& aBoneMatrixArray, const EffectTechniques::TechniqueType aTechniqueType /*= EffectTechniques::NORMAL */ )
 {
 	Matrix44f newOrientation = anOrientation;
 
@@ -203,11 +208,7 @@ void Model::Render( Matrix44< float > anOrientation, CommonUtilities::StaticArra
 		//myOldOrientation = newOrientation;
 
 		D3D10_TECHNIQUE_DESC techDesc;
-		HRESULT hr = GetEffect()->GetTechnique( aTechniqueType )->GetDesc( &techDesc );
-		if ( FAILED(hr) ) 
-		{
-			assert(false, "Probably could not find correct technique in shader.");
-		}
+		GetEffect()->GetTechnique( aTechniqueType )->GetDesc( &techDesc );
 
 		for( UINT p = 0; p < techDesc.Passes; ++p )
 		{
@@ -216,15 +217,21 @@ void Model::Render( Matrix44< float > anOrientation, CommonUtilities::StaticArra
 			{
 				Engine::GetInstance()->GetDevice()->IASetPrimitiveTopology(mySurfaces[surfaceRendered].GetPrimologyType());
 				Engine::GetInstance()->GetEffectInput().SetDiffuseMap(mySurfaces[surfaceRendered].GetDiffuseTexture());
-				Texture* envirMap = mySurfaces[surfaceRendered].GetEnviromentMap();
-				if (envirMap != 0)
+				if(anAmbientProbeIndex != -1)
 				{
-					Engine::GetInstance()->GetEffectInput().SetEnviromentMap(envirMap);
+					Engine::GetInstance()->GetEffectInput().SetEnviromentMap(Engine::GetInstance()->GetRenderer().GetGeneratedCubeMap(anAmbientProbeIndex));
+					Engine::GetInstance()->GetEffectInput().SetAmbientProbePosition(Application::ourAmbientProbePositions[anAmbientProbeIndex]);
+					Engine::GetInstance()->GetEffectInput().SetReflectionMap(Engine::GetInstance()->GetRenderer().GetGeneratedReflectionMap(anAmbientProbeIndex));
 				}
-				else
-				{
-					Engine::GetInstance()->GetEffectInput().SetEmptyEnviromentMap();
-				}
+				//Texture* envirMap = mySurfaces[surfaceRendered].GetEnviromentMap();
+				//if (envirMap != 0)
+				//{
+				//	Engine::GetInstance()->GetEffectInput().SetEnviromentMap(envirMap);
+				//}
+				//else
+				//{
+				//	Engine::GetInstance()->GetEffectInput().SetEmptyEnviromentMap();
+				//}
 
 				Texture* normalMap =  mySurfaces[surfaceRendered].GetNormalMap();
 				if (normalMap != 0)
@@ -381,4 +388,190 @@ void Model::SetEnviromentMap( ID3D10ShaderResourceView* aCubeMap )
 	{
 		myChilds[child]->SetEnviromentMap( aCubeMap );
 	}
+}
+
+void Model::InitSphere(int aSize, int aHeight)
+{
+	aHeight = MAX(aHeight, 1);
+	aSize = MAX(aSize, 3);
+	CU::GrowingArray<VertexPosNorm> somePoints(aHeight*aSize+2,1);
+	CU::GrowingArray<unsigned int> indexPositions(aHeight*aSize,aHeight*aSize);
+
+	VertexPosNorm aPosition;
+	float Pi = static_cast<float>(D3DX_PI);
+
+	indexPositions.Add(somePoints.Count());
+	bool swapBool = true;
+	for(int index = 0; index <= aHeight; index++)
+	{
+		indexPositions.Add(somePoints.Count()-1);
+		indexPositions.Add(somePoints.Count()-1);
+		Vector3f linePosition(0,1,0);
+		linePosition = linePosition * Matrix33f::CreateRotateAroundZ((Pi / (aHeight)) * (index));
+		for(int innerIndex = 0; innerIndex < aSize; innerIndex++)
+		{
+			aPosition.myPos = linePosition;
+			aPosition.myNorm = Vector2f(linePosition.Normalize().myX, linePosition.Normalize().myY);
+			somePoints.Add(aPosition);
+			linePosition = linePosition * Matrix33f::CreateRotateAroundY(((Pi*2) / (aSize-1)));
+			if(somePoints.Count()-aSize > 0)
+			{
+				indexPositions.Add(somePoints.Count()-aSize-1);
+				indexPositions.Add(somePoints.Count()-1);
+			}
+		}
+	}
+
+	myFileName = "SphereFromCode";
+	myIsNULLObject = false;
+	myCastsShadowFlag = false;
+
+	VertexPosNorm *someData = new VertexPosNorm[somePoints.Count()];
+	for(int index = 0; index < somePoints.Count(); index++)
+	{
+		someData[index].myPos = somePoints[index].myPos;
+		someData[index].myNorm = somePoints[index].myNorm;
+	}
+
+	unsigned int *indexData = new unsigned int[indexPositions.Count()];
+	for(int index = 0; index < indexPositions.Count(); index++)
+	{
+		indexData[index] = indexPositions[index];
+	}
+
+ 	myVertexData.myNrOfVertexes = somePoints.Count();
+	myVertexData.mySize  = sizeof(VertexPosNorm) * somePoints.Count();
+	myVertexData.myStride = sizeof(VertexPosNorm);
+	myVertexData.myType = VertexTypePosNorm;
+	myVertexType = VertexTypePosNorm;
+
+	myVertexData.myVertexData = reinterpret_cast<char*>(someData);
+
+	myVertexIndexData.myFormat = DXGI_FORMAT_R32_UINT;
+	myVertexIndexData.myIndexData = reinterpret_cast<char*>(indexData);
+	myVertexIndexData.myNrOfIndexes = indexPositions.Count();
+	myVertexIndexData.mySize = sizeof(unsigned int)*indexPositions.Count();
+
+	D3D10_INPUT_ELEMENT_DESC aLayout = {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D10_INPUT_PER_VERTEX_DATA, 0};
+	myVertexFormat.Add(aLayout);
+	D3D10_INPUT_ELEMENT_DESC aLayout3 = {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D10_INPUT_PER_VERTEX_DATA, 0};
+	myVertexFormat.Add(aLayout3);
+
+	Surface surfaceToAdd;
+	mySurfaces.Add(surfaceToAdd);
+	mySurfaces[mySurfaces.Count()-1].SetPrimologyType(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	mySurfaces[mySurfaces.Count()-1].SetVertexStart(0);
+	mySurfaces[mySurfaces.Count()-1].SetVertexCount(somePoints.Count());
+	mySurfaces[mySurfaces.Count()-1].SetIndexStart(0);
+	mySurfaces[mySurfaces.Count()-1].SetIndexCount(indexPositions.Count());
+	mySurfaces[mySurfaces.Count()-1].SetDiffuseTexture("sphere_albedo.dds");
+
+	SetEffect(Engine::GetInstance()->GetEffectContainer().GetEffect("LabbNormal.fx"));
+}
+void Model::InitCone(int aSize)
+{
+	//aSize = MAX(aSize, 3);
+	//CU::GrowingArray<VertexPosNormUV> somePoints(aSize+2,1);
+	//CU::GrowingArray<unsigned int> indexPositions(aSize+2,aSize+2);
+	//
+	//VertexPosNormUV aPosition;
+	//aPosition.myNormal = Vector3f(0,-1,0);
+	//float Pi = static_cast<float>(D3DX_PI);
+	//somePoints.Add(aPosition);
+
+	//indexPositions.Add(somePoints.Count());
+	//indexPositions.Add(somePoints.Count());
+	//bool swapBool = true;
+	//Vector3f linePosition(1,0,0);
+	//for(int index = 0; index <= aSize; index++)
+	//{
+	//	aPosition.myPos = linePosition+Vector3f(0,0,-1);
+	//	aPosition.myNormal = (aPosition.myPos).Normalize();
+	//	somePoints.Add(aPosition);
+	//	linePosition = linePosition * Matrix33f::CreateRotateAroundZ(((Pi*2) / (aSize)));
+
+	//	indexPositions.Add(0);
+	//	indexPositions.Add(somePoints.Count()-1);
+	//}
+
+	//indexPositions.Add(somePoints.Count()-1);
+	//for(int index = 2; index < somePoints.Count(); index++)
+	//{
+	//	indexPositions.Add(1);
+	//	indexPositions.Add(index);
+	//}
+	//myFileName = "ConeFromCode";
+	//myIsNULLObject = false;
+	//myCastsShadowFlag = false;
+
+	//VertexPosNormUV *someData = new VertexPosNormUV[somePoints.Count()];
+	//for(int index = 0; index < somePoints.Count(); index++)
+	//{
+	//	someData[index].myPos = somePoints[index].myPos;
+	//	someData[index].myNormal = somePoints[index].myNormal;
+	//	someData[index].myUV = Vector2f(0.0f, 0.0f);
+	//}
+
+	//unsigned int *indexData = new unsigned int[indexPositions.Count()];
+	//for(int index = 0; index < indexPositions.Count(); index++)
+	//{
+	//	indexData[index] = indexPositions[index];
+	//}
+
+	CU::GrowingArray<VertexPosNormUV> somePoints(aSize+2,1);
+	CU::GrowingArray<unsigned int> indexPositions(aSize+2,aSize+2);
+
+	somePoints.Add(VertexPosNormUV(Vector3f(-1.0f, -1.0f, 0.0f), Vector3f(0.0f, 1.0f, 0.0f), Vector2f(0.0f, 0.0f)));
+	somePoints.Add(VertexPosNormUV(Vector3f(0.0f, 1.0f, 0.0f), Vector3f(0.0f, 1.0f, 0.0f), Vector2f(0.0f, 0.0f)));
+	somePoints.Add(VertexPosNormUV(Vector3f(1.0f, -1.0f, 0.0f), Vector3f(0.0f, 1.0f, 0.0f), Vector2f(0.0f, 0.0f)));
+
+	indexPositions.Add(0);
+	indexPositions.Add(1);
+	indexPositions.Add(2);
+
+
+ 	myVertexData.myNrOfVertexes = somePoints.Count();
+	myVertexData.mySize  = sizeof(VertexPosNorm) * somePoints.Count();
+	myVertexData.myStride = sizeof(VertexPosNorm);
+	myVertexData.myType = VertexTypePosNorm;
+	myVertexType = VertexTypePosNorm;
+
+	VertexPosNormUV *someData = new VertexPosNormUV[somePoints.Count()];
+	for(int index = 0; index < somePoints.Count(); index++)
+	{
+		someData[index].myPos = somePoints[index].myPos;
+		someData[index].myNormal = somePoints[index].myNormal;
+		someData[index].myUV = somePoints[index].myUV;
+		//someData[index].myUV = Vector2f(0.0f, 0.0f);
+	}
+	myVertexData.myVertexData = reinterpret_cast<char*>(someData);
+
+	myVertexIndexData.myFormat = DXGI_FORMAT_R32_UINT;
+
+	unsigned int *indexData = new unsigned int[indexPositions.Count()];
+	for(int index = 0; index < indexPositions.Count(); index++)
+	{
+		indexData[index] = indexPositions[index];
+	}
+	myVertexIndexData.myIndexData = reinterpret_cast<char*>(indexData);
+	myVertexIndexData.myNrOfIndexes = indexPositions.Count();
+	myVertexIndexData.mySize = sizeof(unsigned int)*indexPositions.Count();
+
+	D3D10_INPUT_ELEMENT_DESC aLayout = {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D10_INPUT_PER_VERTEX_DATA, 0};
+	myVertexFormat.Add(aLayout);
+	D3D10_INPUT_ELEMENT_DESC aLayout2 = {"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D10_INPUT_PER_VERTEX_DATA, 0};
+	myVertexFormat.Add(aLayout2);
+	D3D10_INPUT_ELEMENT_DESC aLayout3 = {"TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D10_INPUT_PER_VERTEX_DATA, 0};
+	myVertexFormat.Add(aLayout3);
+
+	Surface surfaceToAdd;
+	mySurfaces.Add(surfaceToAdd);
+	mySurfaces[mySurfaces.Count()-1].SetPrimologyType(D3D10_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	mySurfaces[mySurfaces.Count()-1].SetVertexStart(0);
+	mySurfaces[mySurfaces.Count()-1].SetVertexCount(somePoints.Count());
+	mySurfaces[mySurfaces.Count()-1].SetIndexStart(0);
+	mySurfaces[mySurfaces.Count()-1].SetIndexCount(indexPositions.Count());
+	mySurfaces[mySurfaces.Count()-1].SetDiffuseTexture("Noise.png");
+
+	SetEffect(Engine::GetInstance()->GetEffectContainer().GetEffect("LabbNormal.fx"));
 }
