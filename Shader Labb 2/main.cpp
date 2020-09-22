@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <assert.h>
+#include <FCollada.h>
 
 //in project includes
 #include "resource.h"
@@ -11,6 +12,7 @@ LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
 
 int WINAPI wWinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow )
 {
+	fm::SetAllocationFunctions(malloc, free);
 
 	MSG windowsMessage;
 	HWND hWnd;

@@ -13,6 +13,8 @@ public:
 	
 	void LoadFromFile();
 
+	char* GetCurrentWorkingDirectory();
+
 	std::string myApplicationName;
 	std::string mySessionName;
 	int myResolutionWidth;
