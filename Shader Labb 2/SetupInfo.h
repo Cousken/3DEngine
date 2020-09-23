@@ -3,6 +3,7 @@
 
 #include <string>
 #include <windows.h>
+#include "debugHeader.h"
 
 class SetupInfo
 {

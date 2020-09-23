@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <cassert>
+#include "debugHeader.h"
 
 
 template <typename T>

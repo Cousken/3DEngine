@@ -8,6 +8,7 @@
 #include "EffectTechnique.h"
 #include "StaticArray.h"
 #include "Matrix.h"
+#include "debugHeader.h"
 
 class EffectInput;
 

@@ -2,6 +2,7 @@
 #define _TRANSFORMATION_NODE_H_
 
 #include "Matrix.h"
+#include "debugHeader.h"
 
 class TransformationNode
 {

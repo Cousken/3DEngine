@@ -4,6 +4,7 @@
 #include "TransformationNode.h"
 #include "CU_GrowingArray.h"
 #include "Matrix.h"
+#include "debugHeader.h"
 
 class TransformationNode_Hierarchy : public TransformationNode
 {

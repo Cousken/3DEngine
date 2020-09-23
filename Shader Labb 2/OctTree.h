@@ -1,6 +1,7 @@
 #pragma once
 
 #include "TreeNode.h"
+#include "debugHeader.h"
 
 class Frustum;
 class Camera;

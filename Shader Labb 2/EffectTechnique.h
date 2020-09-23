@@ -1,6 +1,8 @@
 #ifndef _EFFECT_TECHNIQUE_H_
 #define _EFFECT_TECHNIQUE_H_
 
+#include "debugHeader.h"
+
 namespace EffectTechniques
 {
 	enum TechniqueType

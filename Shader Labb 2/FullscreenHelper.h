@@ -6,6 +6,7 @@
 #include "CU_GrowingArray.h"
 #include <d3d10.h>
 #include "EffectTechnique.h"
+#include "debugHeader.h"
 
 class Instance;
 class Camera;

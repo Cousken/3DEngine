@@ -5,6 +5,7 @@
 #include "StreakParticle.h"
 #include "Effect.h"
 #include "BufferWrapper.h"
+#include "debugHeader.h"
 
 class Streak
 {

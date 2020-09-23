@@ -4,6 +4,7 @@
 #include "Matrix.h"
 #include "Bone.h"
 #include "TransformationNodeInstance.h"
+#include "debugHeader.h"
 
 class BoneInstance
 {

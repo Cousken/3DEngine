@@ -3,6 +3,7 @@
 
 #include "TransformationNode.h"
 #include "CU_GrowingArray.h"
+#include "debugHeader.h"
 
 class TransformationNodeInstance
 {

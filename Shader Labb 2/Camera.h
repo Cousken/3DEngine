@@ -4,6 +4,7 @@
 #include "Matrix.h"
 #include "Vector.h"
 #include "Frustum.h"
+#include "debugHeader.h"
 
 class Camera
 {

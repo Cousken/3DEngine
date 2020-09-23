@@ -5,6 +5,7 @@
 #include "Vector.h"
 #include "CPUParticleData.h"
 #include <D3D10.h>
+#include "debugHeader.h"
 
 class Texture;
 class Effect;

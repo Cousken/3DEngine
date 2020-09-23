@@ -1,3 +1,9 @@
+#define _DEBUG
+#define DEBUG
+
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #include <windows.h>
 #include <assert.h>
 #include <FCollada.h>
@@ -6,8 +12,9 @@
 #include "resource.h"
 #include "Engine.h"
 #include "Application.h"
+#include "debugHeader.h"
 
-#pragma comment(lib, "FCollada")
+#define _CRTDBG_MAP_ALLOC
 
 LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
 
@@ -76,6 +83,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	Engine::ShutDown();
 	//DL::Debug::Destroy();
 	// Clean up and shutdown
+
+#ifdef DEBUG
+	_CrtDumpMemoryLeaks();
+#endif // DEBUG
+
 	
 	return 0;
 }

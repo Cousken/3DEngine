@@ -6,6 +6,7 @@
 #include "CU_GrowingArray.h"
 #include "cu_vector.h"
 #include "AnimationEnums.h"
+#include "debugHeader.h"
 
 //#include "enums.h"
 

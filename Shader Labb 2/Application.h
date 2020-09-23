@@ -12,6 +12,7 @@
 #include "EffectInput.h"
 #include "CPUParticleEmittorInstance.h"
 #include "Streak.h"
+#include "debugHeader.h"
 
 class Engine;
 
@@ -31,6 +32,7 @@ public:
 	void Render();
 
 	void LogicUpdate();
+	bool ExitRequested() const;
 
 	static const int myNumberOfAmbientProbes = 5;
 	static Vector3f ourAmbientProbePositions[5];
@@ -77,6 +79,7 @@ private:
 
 	int myHasRenderedCube;
 	Vector3f myBallPosition;
+	bool myExitRequested = false;
 };
 
 #endif

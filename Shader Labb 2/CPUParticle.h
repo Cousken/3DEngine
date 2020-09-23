@@ -2,6 +2,7 @@
 #define _CPU_PARTICLE_H_
 
 #include "Vector.h"
+#include "debugHeader.h"
 
 class CPUParticle
 {

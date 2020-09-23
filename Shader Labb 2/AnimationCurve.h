@@ -2,7 +2,7 @@
 #define N3_ANIMATIONCURVE_HEADER
 
 #include "CU_GrowingArray.h"
-
+#include "debugHeader.h"
 
 struct KeyFrame
 {

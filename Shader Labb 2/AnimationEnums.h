@@ -1,6 +1,8 @@
 #ifndef _ANIMATION_ENUMS_H_
 #define _ANIMATION_ENUMS_H_
 
+#include "debugHeader.h"
+
 enum AnimationType
 {
 	ONLY_ANIMATION_TYPE,

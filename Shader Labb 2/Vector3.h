@@ -6,7 +6,7 @@
 template<typename T>
 class Matrix33;
 #include <cassert>
-
+#include "debugHeader.h"
 
 template <typename T>
 class Vector3

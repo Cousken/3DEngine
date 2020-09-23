@@ -12,6 +12,7 @@
 #include "ModelContainer.h"
 #include "Renderer.h"
 
+#include "debugHeader.h"
 #include "SetupInfo.h"
 
 class Engine

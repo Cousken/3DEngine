@@ -5,6 +5,7 @@
 #include "StaticArray.h"
 #include "Matrix.h"
 #include "Camera.h"
+#include "debugHeader.h"
 
 struct WorldViewProjectionMatrixes;
 

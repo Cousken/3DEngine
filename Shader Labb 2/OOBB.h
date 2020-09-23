@@ -2,6 +2,7 @@
 #define PEDOBEAR_OOBB_HEADER_
 
 #include "Vector.h"
+#include "debugHeader.h"
 #include "Matrix.h"
 
 class OOBB

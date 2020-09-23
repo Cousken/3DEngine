@@ -3,6 +3,7 @@
 
 #include "BoneHierarchy.h"
 #include "TransformationNodeInstance.h"
+#include "debugHeader.h"
 
 class BoneInstanceHierarchy
 {

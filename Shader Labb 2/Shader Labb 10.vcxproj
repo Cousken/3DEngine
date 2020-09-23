@@ -57,6 +57,8 @@
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>/D_DEBUG %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>d3d10.lib;d3dx10.lib;DxErr.lib;dinput8.lib;dxguid.lib;FCollada.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -158,6 +160,7 @@
     <ClInclude Include="CPUParticleEmittorData.h" />
     <ClInclude Include="CPUParticleEmittorInstance.h" />
     <ClInclude Include="CU_GrowingArray.h" />
+    <ClInclude Include="debugHeader.h" />
     <ClInclude Include="DXSDKMeshFactory.h" />
     <ClInclude Include="Effect.h" />
     <ClInclude Include="EffectContainer.h" />

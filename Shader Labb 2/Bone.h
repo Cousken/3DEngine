@@ -3,6 +3,7 @@
 
 #include "CU_GrowingArray.h"
 #include "Matrix.h"
+#include "debugHeader.h"
 
 class Bone
 {

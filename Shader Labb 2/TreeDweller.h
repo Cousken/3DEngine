@@ -2,6 +2,7 @@
 
 #include "Vector.h"
 #include "Instance.h"
+#include "debugHeader.h"
 
 class Camera;
 

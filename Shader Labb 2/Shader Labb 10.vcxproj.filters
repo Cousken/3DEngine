@@ -446,6 +446,9 @@
     <ClInclude Include="AmbientProbe.h">
       <Filter>AmbientProbe</Filter>
     </ClInclude>
+    <ClInclude Include="debugHeader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Labb 01.rc">

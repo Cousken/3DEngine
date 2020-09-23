@@ -6,6 +6,7 @@
 #include "EffectTechnique.h"
 #include "StaticArray.h"
 #include <string>
+#include "debugHeader.h"
 
 struct WorldViewProjectionMatrixes
 {

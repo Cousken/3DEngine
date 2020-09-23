@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include "debugHeader.h"
 
 #define MIN( obj1, obj2 ) (( obj1 < obj2 ) ? obj1: obj2)
 #define MAX( obj1, obj2 ) (( obj1 < obj2 ) ? obj2: obj1)

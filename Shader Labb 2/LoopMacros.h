@@ -1,6 +1,8 @@
 #ifndef LOOPMACROS_HEADER
 #define LOOPMACROS_HEADER
 
+#include "debugHeader.h"
+
 namespace CommonUtilities
 {
 	namespace Macros

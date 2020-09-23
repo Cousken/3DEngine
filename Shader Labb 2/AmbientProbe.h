@@ -1,6 +1,8 @@
 #ifndef AMBIENT_PROBE_H
 #define AMBIENT_PROBE_H
 
+#include "debugHeader.h"
+
 class RenderTarget;
 class ID3D10Texture2D;
 class ID3D10ShaderResourceView;

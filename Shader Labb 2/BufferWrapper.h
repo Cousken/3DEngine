@@ -4,6 +4,7 @@
 #include <string>
 #include <d3d10.h>
 #include "Vector.h"
+#include "debugHeader.h"
 
 enum VertexType
 {

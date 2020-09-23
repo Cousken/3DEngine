@@ -10,6 +10,7 @@
 #include "TransformationNode.h"
 #include "BoneHierarchy.h"
 #include "Bone.h"
+#include "debugHeader.h"
 
 class RenderProcessTarget;
 

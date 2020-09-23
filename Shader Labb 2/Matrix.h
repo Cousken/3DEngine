@@ -3,6 +3,7 @@
 
 #include "Matrix33.h"
 #include "Matrix44.h"
+#include "debugHeader.h"
 
 typedef Matrix33<int>	Matrix33i;
 typedef Matrix44<int>	Matrix44i;

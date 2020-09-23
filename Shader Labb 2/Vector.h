@@ -4,6 +4,7 @@
 #include "Vector2.h"
 #include "Vector3.h"
 #include "Vector4.h"
+#include "debugHeader.h"
 
 typedef Vector2<int>	Vector2i;
 typedef Vector3<int>	Vector3i;

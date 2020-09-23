@@ -5,6 +5,7 @@
 #include "CommonMacros.h"
 #include "assert.h"
 #include "windows.h"
+#include "debugHeader.h"
 
 namespace CU = CommonUtilities;
 

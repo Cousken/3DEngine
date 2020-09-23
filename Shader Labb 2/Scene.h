@@ -9,6 +9,7 @@
 #include <vector>
 #include "CPUParticleEmittorInstance.h"
 #include "Streak.h"
+#include "debugHeader.h"
 
 class RenderProcessTarget;
 class Renderer;

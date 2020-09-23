@@ -5,6 +5,7 @@
 #include <string>
 #include "Texture.h"
 #include "CU_GrowingArray.h"
+#include "debugHeader.h"
 
 class TextureContainer
 {

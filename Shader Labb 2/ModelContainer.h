@@ -4,6 +4,7 @@
 #include "CU_GrowingArray.h"
 #include "Model.h"
 #include "ColladaMeshFactory.h"
+#include "debugHeader.h"
 
 class ModelContainer
 {

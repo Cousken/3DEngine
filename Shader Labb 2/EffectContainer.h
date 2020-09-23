@@ -3,6 +3,7 @@
 
 #include "CU_GrowingArray.h"
 #include "Effect.h"
+#include "debugHeader.h"
 
 class EffectContainer
 {

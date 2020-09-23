@@ -2,6 +2,7 @@
 #define COMMON_UTILITIES_STATICARRAY_HEADER
 
 #include "LoopMacros.h"
+#include "debugHeader.h"
 
 namespace CommonUtilities
 {

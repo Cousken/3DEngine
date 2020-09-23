@@ -13,6 +13,7 @@
 #include "EffectTechnique.h"
 #include "BoneInstanceHierarchy.h"
 #include "BoneInstance.h"
+#include "debugHeader.h"
 
 class Light;
 class RenderProcessTarget;

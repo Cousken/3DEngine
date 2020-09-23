@@ -3,6 +3,8 @@
 
 #include <D3D10.h>
 
+#include "debugHeader.h"
+
 class RenderTarget
 {
 public:

@@ -8,7 +8,7 @@
 //#include "n3_enums.h"
 #include "CU_GrowingArray.h"
 #include "AnimationEnums.h"
-
+#include "debugHeader.h"
 
 struct AnimationFrame
 {

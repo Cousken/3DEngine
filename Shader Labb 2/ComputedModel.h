@@ -6,6 +6,7 @@
 #include "CU_GrowingArray.h"
 #include "Effect.h"
 #include "BufferWrapper.h"
+#include "debugHeader.h"
 
 struct VertexPosCol
 {

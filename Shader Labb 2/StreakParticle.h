@@ -1,6 +1,8 @@
 #ifndef _STREAK_PARTICLE_H_
 #define _STREAK_PARTICLE_H_
 
+#include "debugHeader.h"
+
 class StreakParticle
 {
 public:

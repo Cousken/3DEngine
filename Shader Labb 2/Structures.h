@@ -2,6 +2,7 @@
 #define PEDOBEAR_STRUCTURES_HEADER_
 
 #include "Vector.h"
+#include "debugHeader.h"
 
 
 struct LineSegment

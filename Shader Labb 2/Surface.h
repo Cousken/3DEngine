@@ -3,6 +3,7 @@
 
 #include <D3D10.h>
 #include <string>
+#include "debugHeader.h"
 
 class Texture;
 

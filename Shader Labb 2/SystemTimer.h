@@ -4,6 +4,7 @@
 #include <vector>
 #include "Time.h"
 #include <windows.h>
+#include "debugHeader.h"
 
 class SystemTimer
 {

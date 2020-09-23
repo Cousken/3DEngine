@@ -45,6 +45,9 @@ bool Application::Destroy()
 
 bool Application::Update()
 {
+	if (myExitRequested == true)
+		return false;
+
 	mySystemTimer.Update();
 	float delta = mySystemTimer.GetDeltaTime();	
 	if(delta > 0.05f)
@@ -146,6 +149,12 @@ void Application::Render()
 	{
 		Engine::GetInstance()->GetRenderer().Render();
 	}
+}
+
+
+bool Application::ExitRequested() const
+{
+	return myExitRequested;
 }
 
 void Application::HandleInput( float delta )
@@ -256,7 +265,7 @@ void Application::HandleInput( float delta )
 
 	if(myInputHandler->IsKeyDown(Keys::Escape) == true)
 	{
-		exit(0);
+		myExitRequested = true;
 	}
 
 	myCamera.Rotate(cameraRotation);

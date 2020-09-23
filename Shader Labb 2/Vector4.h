@@ -2,6 +2,7 @@
 #define _VECTOR4_H_
 
 #include "Math.h"
+#include "debugHeader.h"
 
 template<typename Type>
 class Matrix44;

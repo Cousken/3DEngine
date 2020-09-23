@@ -3,6 +3,7 @@
 
 #include <string>
 #include "Matrix.h"
+#include "debugHeader.h"
 
 class FCDocument;
 class FCDController;

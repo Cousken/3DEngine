@@ -8,6 +8,7 @@
 #include "Matrix.h"
 #include "Camera.h"
 #include "Effect.h"
+#include "debugHeader.h"
 
 class ComputedInstance
 {

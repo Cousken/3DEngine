@@ -7,6 +7,7 @@
 #include "FullscreenHelper.h"
 #include "Application.h"
 #include "AmbientProbe.h"
+#include "debugHeader.h"
 
 class Scene;
 
