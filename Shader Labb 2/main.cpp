@@ -9,7 +9,7 @@
 
 #pragma comment(lib, "FCollada")
 
-LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
+// LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
 
 //int wWinMain()
 //{
@@ -80,28 +80,28 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	return 0;
 }
 
-LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
-{
-	fm::SetAllocationFunctions(malloc, free);
-	
-	PAINTSTRUCT ps;
-	HDC hdc;
-
-	switch( message )
-	{
-	case WM_PAINT:
-		hdc = BeginPaint( hWnd, &ps );
-		EndPaint( hWnd, &ps );
-		break;
-
-	case WM_DESTROY:
-		PostQuitMessage( 0 );
-		break;
-
-	default:
-		return DefWindowProc( hWnd, message, wParam, lParam );
-	}
-
-	return 0;
-}
+//LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam )
+//{
+//	fm::SetAllocationFunctions(malloc, free);
+//	
+//	PAINTSTRUCT ps;
+//	HDC hdc;
+//
+//	switch( message )
+//	{
+//	case WM_PAINT:
+//		hdc = BeginPaint( hWnd, &ps );
+//		EndPaint( hWnd, &ps );
+//		break;
+//
+//	case WM_DESTROY:
+//		PostQuitMessage( 0 );
+//		break;
+//
+//	default:
+//		return DefWindowProc( hWnd, message, wParam, lParam );
+//	}
+//
+//	return 0;
+//}
 
