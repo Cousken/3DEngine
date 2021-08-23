@@ -18,12 +18,13 @@ bin/*.exp
 bin/*.ilk
 bin/*.pdb
 bin/*.idb
+Debug/*
+DL_Debug/*
 
 // FOLDERS
 .vs
 CommonUtilities/Debug
 CommonUtilities/Release
-Debug
 DL_Debug/Release
 FI_File/bin
 FI_File/data
@@ -31,5 +32,6 @@ Shader Labb 2/bin
 Shader Labb 2/data
 tinyxml/bin
 tinyxml/data
+tinyxml/Debug
 tinyxml/Release
 
